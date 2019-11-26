@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.902
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InTouch", "InTouch\InTouch.csproj", "{88F0A2B9-0A74-403B-8819-BC6A7C39A03A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{88F0A2B9-0A74-403B-8819-BC6A7C39A03A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88F0A2B9-0A74-403B-8819-BC6A7C39A03A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88F0A2B9-0A74-403B-8819-BC6A7C39A03A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88F0A2B9-0A74-403B-8819-BC6A7C39A03A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3185E930-2E56-4E86-98DC-ACA6D3AA5B83}
+	EndGlobalSection
+EndGlobal
