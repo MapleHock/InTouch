@@ -28,5 +28,6 @@ namespace InTouch.Model {
         public Type type;
         public object msg;
         public string description { get; set; }
+        public string src { get; set; }
     }
 }

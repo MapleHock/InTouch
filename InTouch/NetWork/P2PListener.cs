@@ -25,18 +25,17 @@ namespace InTouch.NetWork {
         private Thread listenThread;
 
 
-        List<byte[]> dataGroup = new List<byte[]>();
         private IPAddress localIP = null;
         int listenPort;
         bool listening;
-        private const int byteBufferSize = 1024 * 1024; // 1MB TODO
+        private const int byteBufferSize = 16 * 1024 * 1024; // 15 + 1M 最大1M报头
         byte[] recvBytes = new byte[byteBufferSize];
-        private DataToMsg DataToMsg;
 
-        public List<Message> rawMessageList = new List<Message>();
 
-        public delegate void RecvNewDataHandler();
-        public event RecvNewDataHandler RecvNewData;
+
+
+        public delegate void RecvNewDataHandler(byte[] newData);
+        public event RecvNewDataHandler RecvCallBack;
 
         public P2PListener(int _listenPort) {
             try {
@@ -56,16 +55,16 @@ namespace InTouch.NetWork {
             }
 
             this.listenPort = _listenPort;
-            switch (_listenPort) {
-                case WORDMSGLISTENPORT:
-                    DataToMsg = DataToWord;
-                    break;
-                case FILEMSGLISTENPORT:
-                    DataToMsg = DataToFile;
-                    break;
-                default:
-                    break;
-            }
+            //switch (_listenPort) {
+            //    case WORDMSGLISTENPORT:
+            //        DataToMsg = DataToWord;
+            //        break;
+            //    case FILEMSGLISTENPORT:
+            //        DataToMsg = DataToFile;
+            //        break;
+            //    default:
+            //        break;
+            //} // TODO
             // 尝试不同的端口号，从起点向上搜索 MAXPORTSPAN 个端口，有空则使用
             IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
             IPEndPoint[] ipEndPoints = ipProperties.GetActiveTcpListeners();
@@ -98,7 +97,6 @@ namespace InTouch.NetWork {
         public void ListenData() {
             tcpListener.Start();
             listening = true;
-            int groupStart = 0;
             while (listening) {
                 // 监听到挂起的连接请求，连接并收消息
                 if (tcpListener.Pending()) {
@@ -107,25 +105,21 @@ namespace InTouch.NetWork {
                         recvClient = tcpListener.AcceptTcpClient();
                         recvClient.ReceiveBufferSize = byteBufferSize;
                         NetworkStream nwStream = recvClient.GetStream();
-                                             
-                        if (nwStream.CanRead) {
-                            while (nwStream.DataAvailable) {
-                                recvBytes = new byte[byteBufferSize];
-                                nwStream.Read(recvBytes, 0, byteBufferSize);
-                                dataGroup.Add(recvBytes);
-                                Thread.Sleep(2000);
-                            }
+                        while (!nwStream.DataAvailable) {
+                            Thread.Sleep(10); // 等待对方流书写完成   
+                        }                                
+                        while (nwStream.DataAvailable) {
+                            recvBytes = new byte[byteBufferSize];
+                            nwStream.Read(recvBytes, 0, byteBufferSize);
                         }
                     } catch (Exception e) {
                         MessageBox.Show(e.Message);
                         return;
                     }
-                    rawMessageList.Add(DataToMsg(groupStart, dataGroup.Count));
-                    groupStart = dataGroup.Count;
-                    if (RecvNewData != null) {
-                        Application.Current.Dispatcher.BeginInvoke(RecvNewData);
-                    }
-                    
+
+                    if (RecvCallBack != null) {
+                        Application.Current.Dispatcher.BeginInvoke(RecvCallBack, recvBytes);
+                    }                    
                 }
             }
             return;
@@ -141,59 +135,8 @@ namespace InTouch.NetWork {
             }            
         }
 
-        private Model.Message DataToWord(int groupStart, int groupEnd) {
-            
-            // TODO 分发
-            StringBuilder stringBuilder = new StringBuilder();
-            for (var i = groupStart; i < groupEnd; i++) {
-                stringBuilder.Append(Encoding.UTF8.GetString(dataGroup[i]).Replace("\0",""));
-                
-            }
-            string words = stringBuilder + "";
 
-            var newMsg = new Model.Message() {
-                type = Model.Message.Type.Words,
-                msg = words
-            };
-            newMsg.UpdateDesciptioin();
-            return newMsg;
-        }
-
-        private Model.Message DataToFile(int groupStart, int groupEnd) {
-            string fileName = $"test";
-            FileStream fstream = new FileStream(fileName, FileMode.Create, FileAccess.Write);
-            string suffix = null;
-            byte[] firstByte = null;
-            long fstreamLength = 0;
-            try {
-                string firstBuffer = Encoding.UTF8.GetString(dataGroup[groupStart]);
-
-                string[] details = firstBuffer.Substring(0, firstBuffer.IndexOf('\0') - 1).Split('|');
-                suffix = details[0];
-                fstreamLength = Convert.ToUInt32(details[1]);
-                firstByte = Encoding.UTF8.GetBytes(firstBuffer.Substring(firstBuffer.IndexOf('\0')));
-            } catch (Exception e) {
-                MessageBox.Show(e.Message, "文件概况接收失败");
-                return null;
-            }
-
-            try {
-                fstream.Write(firstByte, 0, firstByte.Length);
-                for (int i = groupStart + 1; i < groupEnd; i++) {
-                    fstream.Write(dataGroup[i], 0, (int)Math.Min(byteBufferSize, fstreamLength)); // TODO check
-                }
-            } catch (Exception e) {
-                MessageBox.Show(e.Message, "文件接收失败");
-                return null;
-            }
-            fstream.Close();
-            var newMsg = new Model.Message() {
-                type = Model.Message.Type.File,
-                msg = fileName
-            };
-            return newMsg;
-        }
     }
 
-    public delegate Model.Message DataToMsg(int groupStart, int groupEnd);
+
 }

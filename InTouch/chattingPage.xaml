@@ -45,13 +45,13 @@
                 
             </StackPanel>-->
 
-            <ListView Grid.Row="1"  Name="showingMsgList" Margin="0, 10" ScrollViewer.VerticalScrollBarVisibility="Auto" Background="#FAFAFA" materialDesign:ScrollBarAssist.ButtonsVisibility="Collapsed">
-                <!--TODO no button sytle-->
+            <ListView Grid.Row="1"  Name="showingMsgList" SelectionChanged="ShowingMsgList_SelectionChanged" Margin="0, 10" ScrollViewer.VerticalScrollBarVisibility="Auto" Background="#FAFAFA" materialDesign:ScrollBarAssist.ButtonsVisibility="Collapsed" >
                 <ListView.ItemTemplate>
                     <DataTemplate>
-                        <WrapPanel>
+                        <StackPanel>
+                            <Label FontSize="8" Content="{Binding Path=src}"/>
                             <Label Content="{Binding Path=description}"/>
-                        </WrapPanel>
+                        </StackPanel>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
@@ -59,7 +59,8 @@
             <StackPanel x:Name="SendStack" Grid.Row="3" Background="#EEEEEE">
                 <DockPanel>
                     <materialDesign:PackIcon Kind="Video" Margin="5, 0, 5, 0"/>
-                    <materialDesign:PackIcon Kind="Audio" Margin="0, 0, 5, 0"/>
+                    <materialDesign:PackIcon Kind="Audio" Margin="0, 0, 5, 0"
+                                             MouseLeftButtonDown="AudioIcon_MouseLeftButtonDown"/>
                     <materialDesign:PackIcon Kind="Image" Margin="0, 0, 5, 0"/>
                     <materialDesign:PackIcon Kind="FolderPlus"  Margin="0, 0, 5, 0"
                                              MouseLeftButtonDown="FolderPlusIcon_MouseLeftButtonDown"/>
@@ -69,7 +70,7 @@
                 <Rectangle Height="1" Width="{Binding ElementName=SendStack, Path=ActualWidth}" Fill="Black"/>
                 <TextBox Name="msgTbx" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" 
                             VerticalScrollBarVisibility="auto" BorderThickness="0,0,0,0" Margin="0, 5, 0, 0"  Background="#EEEEEE" 
-                            TabIndex="4" />
+                            TabIndex="4" KeyDown="MsgTbx_KeyDown"/>
             </StackPanel>
         </Grid>
     </Grid>

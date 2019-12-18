@@ -11,6 +11,7 @@ namespace InTouch.ViewModel {
         private AddressBook.Item _addressInfo;
         private List<Message> _msgList = new List<Message>();
         private int _noReadCount;
+        public string id;
 
         public AddressBook.Item addressInfo {
             get { return _addressInfo; }
@@ -29,19 +30,18 @@ namespace InTouch.ViewModel {
     }
 
     public class ChatViewModel : ViewModelBase {
-        private List<Message> _rawMessageList;
         
         public List<ChatRoomViewModel> chatRoomViewModels { get; set; }
 
         public ChatRoomViewModel selectedChatRoom;
 
-        public ChatViewModel(List<Message> _rawMessageList) {
-            this._rawMessageList = _rawMessageList;
-            // temp
+        public ChatViewModel() {
             chatRoomViewModels = new List<ChatRoomViewModel>();
             foreach (var item in App.addressBook.items) {
                 var chatRoomViewModel = new ChatRoomViewModel();
-                chatRoomViewModel.addressInfo = item; // TODO clone?
+                chatRoomViewModel.addressInfo = item; 
+                chatRoomViewModel.id = item.UserName;
+                //chatRoomViewModel.msgList = new List<Message>();
                 chatRoomViewModels.Add(chatRoomViewModel);
             }
         }

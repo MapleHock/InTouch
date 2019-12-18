@@ -14,7 +14,7 @@ namespace InTouch.NetWork
     public class P2PSender {
         private static P2PSender instance = null;
 
-        private const int byteBufferSize = 1024 * 1024; // 1MB
+        private const int byteBufferSize = 16 * 1024 * 1024; // 1MB
 
         public static P2PSender getInstance() {
             if (instance == null)
@@ -100,7 +100,7 @@ namespace InTouch.NetWork
                 MessageBox.Show(e.Message, "文件概况发送失败");
                 return;
             }
-
+            
             int offset = 0;
             while (offset < fStream.Length) {                
                 try {
