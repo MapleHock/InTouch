@@ -4,9 +4,25 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:InTouch"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="600" Width="800" MinWidth="800" 
+        Closed="Window_Closed">
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" MaxWidth="50"/>
+            <ColumnDefinition Width="15*"/>
+        </Grid.ColumnDefinitions>
+        
+        <!--Grid0, user function choose -->
+        <StackPanel Grid.Column="0" x:Name="funcStack" Background="#272727">
+            <materialDesign:PackIcon Kind="MessageAlert" Foreground="#B3E5FC" HorizontalAlignment="Stretch" Width="{Binding ElementName=funcStack, Path=ActualWidth}" MinHeight="45" BorderThickness="5" Margin="0,5" MouseLeftButtonDown="MessageIcon_MouseLeftButtonDown"/>
+            <materialDesign:PackIcon Kind="Contact" Foreground="#B3E5FC" HorizontalAlignment="Stretch" Width="{Binding ElementName=funcStack, Path=ActualWidth}" MinHeight="45" BorderThickness="5" Margin="0,0" MouseLeftButtonDown="ContactIcon_MouseLeftButtonDown"/>
+            <materialDesign:PackIcon Kind="Extension"  Foreground="#B3E5FC" HorizontalAlignment="Stretch" Width="{Binding ElementName=funcStack, Path=ActualWidth}" MinHeight="45" Margin="0,5" BorderThickness="5"/>
+            <!--TODO-->
+        </StackPanel>
+
+        <ContentControl Name="rightPageCtrl" Grid.Column="1"/>
         
     </Grid>
 </Window>
