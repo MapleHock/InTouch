@@ -32,6 +32,8 @@ namespace InTouch {
             App.wordListener.BeginListen();
             App.fileListener = new P2PListener(P2PListener.FILEMSGLISTENPORT);
             App.fileListener.BeginListen();
+            App.udpListener = new UDPListener();
+            App.udpListener.BeginListen();
             this.Close();
         }
     }

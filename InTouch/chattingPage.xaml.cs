@@ -15,8 +15,7 @@ using System.Windows.Shapes;
 using System.IO;
 using Microsoft.Win32;
 using System.Threading;
-using NAudio.Wave;
-using NAudio.Wave.SampleProviders;
+
 
 
 using InTouch.ViewModel;
@@ -74,7 +73,11 @@ namespace InTouch
             string srcId = App.user.userName;
             string destId = chatViewModel.selectedChatRoom.id;
             byte[] data = AppProtocol.PackWord(msgTbx.Text, srcId, destId);
-            P2PSender.getInstance().SendData(data, targetIP, targetPort);
+            if (isUDPCbx.IsChecked == true) {
+                UDPSender.getInstance().sendData(data, targetIP); // udp 发送不支持指定端口
+            } else {
+                P2PSender.getInstance().SendData(data, targetIP, targetPort);
+            }            
             msgTbx.Text = "";
         }
 
@@ -162,56 +165,63 @@ namespace InTouch
             SendFileMsg();
         }
 
-        private void ShowingMsgList_Selected(object sender, RoutedEventArgs e) {
-
-        }
-
         private void ShowingMsgList_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             var clickedMsg = ((Model.Message)showingMsgList.SelectedItem);
             if (clickedMsg.type == Model.Message.Type.File) {
-                System.Diagnostics.Process.Start((string)clickedMsg.msg);
+                try { // 防止没有对应程序运行
+                    System.Diagnostics.Process.Start((string)clickedMsg.msg);
+                } catch (Exception) { }               
             }
         }
 
         private void AudioIcon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-
-            //var outputDevice = new WaveOutEvent();
-
-            //var audioFile = new AudioFileReader("test.mp3");
-            //wavein
-            //outputDevice.Init(audioFile);
-            //outputDevice.Play();
-            // set up the recorder
-
-            //recorder = new WaveIn();
-            //recorder.DataAvailable += RecorderOnDataAvailable;
-
-            //bufferedWaveProvider = new BufferedWaveProvider(recorder.WaveFormat);
-            //player = new WaveOut();
-            //player.Init(bufferedWaveProvider);
-            //player.Play();
-            //recorder.StartRecording();
             string targetIP = chatViewModel.selectedChatRoom.addressInfo.IPAddress;
-           
-            int targetPort = 9000;
-            if (!isPlay) {
+            
+            int targetPort = 9000; // TODO
+            if (!isPlayAudio) {
                 audio = new Audio();
                 audio.AudioChatBegin(System.Net.IPAddress.Parse(targetIP), targetPort);
-                isPlay = true;
+                isPlayAudio = true;
             } else {
                 audio.AudioChatEnd();
-                isPlay = false;
+                isPlayAudio = false;
             }
         }
-        private WaveIn recorder;
-        private BufferedWaveProvider bufferedWaveProvider;
-        private WaveOut player;
+        bool isPlayAudio = false;
+        Audio audio; //TODO position
 
-        Audio audio = new Audio();
-        bool isPlay = false;
+        private void VideoIcon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
+            string targetIP = chatViewModel.selectedChatRoom.addressInfo.IPAddress;
 
-        private void RecorderOnDataAvailable(object sender, WaveInEventArgs waveInEventArgs) {
-            bufferedWaveProvider.AddSamples(waveInEventArgs.Buffer, 0, waveInEventArgs.BytesRecorded);
+            if (!isPlayVideo) {
+                Video video = new Video();
+                if (!video.SelectedDevice()) {
+                    MessageBox.Show("没有可识别的摄像设备");
+                    return;
+                }
+                video.RecvNewFrame += RecvNewFrame;
+                video.BeginVideoChatting(System.Net.IPAddress.Parse(targetIP));
+                isPlayVideo = true;
+            } else {
+                isPlayVideo = false;
+            }
+
         }
+
+
+        [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+        public static extern bool DeleteObject(IntPtr hObject);
+        private void RecvNewFrame(System.Drawing.Bitmap newFrame) {
+             
+
+            IntPtr myImagePtr = newFrame.GetHbitmap();     //创建GDI对象，返回指针 //TODO
+            BitmapSource imgsource = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(myImagePtr, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());  //创建imgSource
+
+            DeleteObject(myImagePtr); 
+            
+            
+            debugVideoImg.Source = imgsource;
+        }
+        bool isPlayVideo = false;
     }
 }

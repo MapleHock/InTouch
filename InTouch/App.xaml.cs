@@ -25,6 +25,8 @@ namespace InTouch {
 
         public static P2PListener fileListener;
 
+        public static UDPListener udpListener;
+
         //public static AddressBook chattingBook = new AddressBook(); // TODO add
 
         static public bool LoadAddressBook(string userName) {

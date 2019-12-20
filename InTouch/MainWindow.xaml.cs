@@ -58,6 +58,7 @@ namespace InTouch {
 
             App.wordListener.EndListen();
             App.fileListener.EndListen();
+            App.udpListener.EndListen();
         }
     }
 }

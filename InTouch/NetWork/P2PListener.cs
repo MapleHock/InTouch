@@ -46,7 +46,7 @@ namespace InTouch.NetWork {
                         localIP = iPHost;
                 }
             } catch(Exception e) {
-                MessageBox.Show(e.Message);
+                MessageBox.Show(e.Message,"没有可用的监听端口");
                 return;
             }
             if (localIP == null) {
@@ -89,7 +89,7 @@ namespace InTouch.NetWork {
             try {
                 listenThread.Start();
             } catch(Exception e) {
-                MessageBox.Show(e.Message);
+                MessageBox.Show(e.Message, "打开消息监听端口失败");
                 return;
             }            
         }
@@ -130,7 +130,7 @@ namespace InTouch.NetWork {
             try {
                 listenThread.Join();
             } catch (Exception e) {
-                MessageBox.Show(e.Message);
+                MessageBox.Show(e.Message, "消息监听进程无法停止");
                 return;
             }            
         }

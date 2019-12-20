@@ -8,11 +8,12 @@ using NAudio.Wave.SampleProviders;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Windows;
 
 namespace InTouch.NetWork {
     class Audio {
-        WaveIn recorder = null;
-        WaveOut player = null;
+        public WaveIn recorder = null;
+        public WaveOut player = null;
         BufferedWaveProvider bufferedWaveProvider = null;
 
         UdpClient udpSender;
@@ -26,20 +27,31 @@ namespace InTouch.NetWork {
         }
 
         public void AudioChatBegin(IPAddress address, int port) {
-            isChatting = true;
-            player.Init(bufferedWaveProvider);
-            recorder.BufferMilliseconds = 500;
-            player.Play();
-            recorder.DataAvailable += RecorderOnDataAvailable;
-            recorder.StartRecording();
-
+            // network setting 
+            
             ipe = new IPEndPoint(address, port);
             udpSender = new UdpClient();
-            udpListener = new UdpClient(ipe);  // TODO System.Net.Sockets.SocketException:“通常每个套接字地址(协议/网络地址/端口)只允许使用一次
+
+            udpListener = new UdpClient(port);  // TODO System.Net.Sockets.SocketException:“通常每个套接字地址(协议/网络地址/端口)只允许使用一次
             udpSender.Connect(ipe);
             isChatting = true;
             var task = new Task(UDPReceive);
             task.Start();
+
+            // local setting
+            try {
+                isChatting = true;
+                player.Init(bufferedWaveProvider);
+                recorder.BufferMilliseconds = 500;
+                player.Play();
+                recorder.DataAvailable += RecorderOnDataAvailable;
+                recorder.StartRecording();
+            } catch (Exception e) {
+                MessageBox.Show(e.Message, "没有可驱动的音频输入或输出设备");
+                isChatting = false;
+                return;
+            }
+
         }
 
         public void AudioChatEnd() {
