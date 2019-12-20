@@ -12,11 +12,13 @@ namespace InTouch.NetWork {
         public delegate void RecvNewDataHandler(byte[] newData);
         public static RecvNewDataHandler WordDealer = null;
         public static RecvNewDataHandler FileDealer = null;
+        public static RecvNewDataHandler PhotoDealer = null;
         public enum MessageType {
             Invalid,
             word,
             file,
-            photo
+            photo,
+            control
         }
         
         public static void RecvData(byte[] dataPack) {
@@ -33,6 +35,9 @@ namespace InTouch.NetWork {
                     FileDealer?.Invoke(dataPack);
                     break;
                 case MessageType.photo:
+                    PhotoDealer?.Invoke(dataPack);
+                    break;
+                case MessageType.control:
                     break;
                 default:
                     break;
@@ -130,14 +135,60 @@ namespace InTouch.NetWork {
             int overviewEnd = indexOfBytes(recvData, Convert.ToByte('$'), headerEnd + 1, recvData.Length - headerEnd - 1);
             int overviewLength = overviewEnd - headerEnd;
             string fileName = Encoding.UTF8.GetString(recvData, headerEnd + 1, overviewEnd - headerEnd - 1);
+            if (Directory.Exists("recvFile")) {
+                Directory.CreateDirectory("recvFile");
+            }
             try {
-                fstream = new FileStream($"recvFile\\{fileName}", FileMode.Create, FileAccess.Write); // TODO create
+                fstream = new FileStream($"recvFile\\{fileName}", FileMode.Create, FileAccess.Write);
                 fstream.Write(recvData, overviewEnd + 1, optionalLength - overviewLength);
             } catch (Exception e) {
                 MessageBox.Show(e.Message);
                 return;
             }
             
+        }
+
+        public static byte[] PackPhoto(System.Drawing.Bitmap bitmap, string srcId, string destId) {
+            // optional 中，先写overview，以$结尾，然后写文件数据
+            byte[] appDataPack = null;
+            byte[] srcIdSeg = Encoding.UTF8.GetBytes(srcId);
+            byte[] destIdSeg = Encoding.UTF8.GetBytes(destId);
+            MemoryStream mStream = new MemoryStream();
+            bitmap.Save(mStream, System.Drawing.Imaging.ImageFormat.Jpeg);
+            byte[] PhotoSeg = mStream.GetBuffer();
+            byte[] lengthSeg = System.BitConverter.GetBytes(PhotoSeg.Length);
+            appDataPack = new byte[srcIdSeg.Length + destIdSeg.Length + 1 + lengthSeg.Length + PhotoSeg.Length + SeparatorNum];
+            int offset = 0;
+            srcIdSeg.CopyTo(appDataPack, offset);
+            offset += srcIdSeg.Length;
+            appDataPack[offset] = Convert.ToByte('|');
+            offset++;
+            destIdSeg.CopyTo(appDataPack, offset);
+            offset += destIdSeg.Length;
+            appDataPack[offset] = Convert.ToByte('|');
+            offset++;
+            appDataPack[offset] = (byte)MessageType.photo;
+            offset++;
+            appDataPack[offset] = Convert.ToByte('|'); // 124
+            offset++;
+            lengthSeg.CopyTo(appDataPack, offset);
+            offset += lengthSeg.Length;
+            appDataPack[offset] = Convert.ToByte('$'); // 36
+            offset++;
+            PhotoSeg.CopyTo(appDataPack, offset);
+            return appDataPack;
+        }
+
+        public static System.Drawing.Bitmap UnPackPhoto(byte[] recvData, ref string srcId, ref string destId) {
+            int headerEnd = indexOfBytes(recvData, Convert.ToByte('$'), 0, recvData.Length);
+            int srcIdEnd = indexOfBytes(recvData, Convert.ToByte('|'), 0, headerEnd);
+            srcId = Encoding.UTF8.GetString(recvData, 0, srcIdEnd - 0);
+            int destIdEnd = indexOfBytes(recvData, Convert.ToByte('|'), srcIdEnd + 1, headerEnd);
+            destId = Encoding.UTF8.GetString(recvData, srcIdEnd + 1, destIdEnd - srcIdEnd - 1);
+            int optionalLength = BitConverter.ToInt32(recvData, destIdEnd + 3);
+
+            MemoryStream mStream = new MemoryStream(recvData, headerEnd + 1, optionalLength);
+            return (System.Drawing.Bitmap)System.Drawing.Image.FromStream(mStream);
         }
 
         // ---------------- 辅助函数,返回第一个匹配的byte

@@ -18,22 +18,23 @@ namespace InTouch.NetWork {
     
     public class P2PListener {
         public const int MAXPORTSPAN = 10;
-        public const int WORDMSGLISTENPORT = 8000;
-        public const int FILEMSGLISTENPORT = 8010;
 
+        public const int WORDLISTENPORT = 8000;
+        public const int FILELISTENPORT = 8010;
+
+        // 网络编程，传输层相关
         private TcpListener tcpListener;
-        private Thread listenThread;
-
-
         private IPAddress localIP = null;
         int listenPort;
-        bool listening;
+       
         private const int byteBufferSize = 16 * 1024 * 1024; // 15 + 1M 最大1M报头
         byte[] recvBytes = new byte[byteBufferSize];
 
+        // 程序具体实行相关，线程间通信
+        private Thread listenThread;
+        bool listening;
 
-
-
+        // 与应用层交互
         public delegate void RecvNewDataHandler(byte[] newData);
         public event RecvNewDataHandler RecvCallBack;
 
@@ -56,10 +57,10 @@ namespace InTouch.NetWork {
 
             this.listenPort = _listenPort;
             //switch (_listenPort) {
-            //    case WORDMSGLISTENPORT:
+            //    case P2PLISTENPORT:
             //        DataToMsg = DataToWord;
             //        break;
-            //    case FILEMSGLISTENPORT:
+            //    case P2PLISTENPORT:
             //        DataToMsg = DataToFile;
             //        break;
             //    default:
@@ -106,21 +107,25 @@ namespace InTouch.NetWork {
                         recvClient.ReceiveBufferSize = byteBufferSize;
                         NetworkStream nwStream = recvClient.GetStream();
                         while (!nwStream.DataAvailable) {
-                            Thread.Sleep(10); // 等待对方流书写完成   
-                        }                                
-                        while (nwStream.DataAvailable) {
-                            recvBytes = new byte[byteBufferSize];
-                            nwStream.Read(recvBytes, 0, byteBufferSize);
+                            Thread.Sleep(100); // 等待对方创建流
                         }
+                        int offset = 0;
+                        while (nwStream.DataAvailable) {
+                            offset = nwStream.Read(recvBytes, offset, byteBufferSize - offset);                            
+                        }                        
+                        nwStream.Close();
                     } catch (Exception e) {
                         MessageBox.Show(e.Message);
                         return;
                     }
 
+                    // 递交应用层
                     if (RecvCallBack != null) {
                         Application.Current.Dispatcher.BeginInvoke(RecvCallBack, recvBytes);
                     }                    
                 }
+
+                Thread.Sleep(500); // TODO减小CPU消耗
             }
             return;
         }

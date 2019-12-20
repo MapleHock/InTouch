@@ -13,12 +13,15 @@ namespace InTouch.Model {
         public AddressBook() {
             items = new List<Item>();
         }
-
+        // 文件中
+        // userName(groupId)/Alias/[GroupUserName...]
         public class Item {
             public string UserName { get; set; }
             public string Alias { get; set; }
-            public bool isOnline { get; set; } // TODO string?
-            public string IPAddress { get; set; } // TODO cancel isOnline 0.0.0.0?
+            public bool isOnline { get; set; }
+            public string IPAddress { get; set; }
+            public bool isGroup;
+            public string[] GroupUserName = null;
         }
     }
 

@@ -38,8 +38,10 @@ namespace InTouch
 
             App.wordListener.RecvCallBack += AppProtocol.RecvData;
             App.fileListener.RecvCallBack += AppProtocol.RecvData;
+            UDPListener.getInstance().RecvCallBack += AppProtocol.RecvData;
             AppProtocol.WordDealer += recvNewWord;
             AppProtocol.FileDealer += recvNewFile;
+            AppProtocol.PhotoDealer += recvNewPhoto;
             var msgtemplate = new DataTemplate();                    
         }
 
@@ -68,16 +70,31 @@ namespace InTouch
 
             
             string targetIP = chatViewModel.selectedChatRoom.addressInfo.IPAddress;
-            
-            int targetPort = P2PListener.WORDMSGLISTENPORT;
+
+            int targetPort = P2PListener.WORDLISTENPORT;
             string srcId = App.user.userName;
             string destId = chatViewModel.selectedChatRoom.id;
-            byte[] data = AppProtocol.PackWord(msgTbx.Text, srcId, destId);
-            if (isUDPCbx.IsChecked == true) {
-                UDPSender.getInstance().sendData(data, targetIP); // udp 发送不支持指定端口
+            if (groupChat.isGroupChatMsg(destId)) {
+                // 群聊消息单独处理
+                groupChat.SendGroupWord(msgTbx.Text, destId);
+                
             } else {
-                P2PSender.getInstance().SendData(data, targetIP, targetPort);
-            }            
+                byte[] data = AppProtocol.PackWord(msgTbx.Text, srcId, destId);
+                if (isUDPCbx.IsChecked == true) {
+                    UDPSender.getInstance().ReliableSendData(data, targetIP); // udp 发送不支持指定端口
+                } else {
+                    P2PSender.getInstance().SendData(data, targetIP, targetPort);
+                }
+            }
+                     
+            
+            // 本地显示自己的话
+            chatViewModel.selectedChatRoom.msgList.Add(new Model.Message { description = msgTbx.Text, src = "我" });
+            showingMsgList.ItemsSource = null;
+            showingMsgList.ItemsSource = chatViewModel.selectedChatRoom.msgList;
+            showingMsgList.ScrollIntoView(showingMsgList.Items[showingMsgList.Items.Count - 1]);
+
+
             msgTbx.Text = "";
         }
 
@@ -90,24 +107,39 @@ namespace InTouch
             string destId = null;
             string word = null;
             AppProtocol.UnPackWord(newData, ref word, ref srcId, ref destId);
+            
+            var newMsg = new Model.Message();
+            if (groupChat.isGroupChatMsg(srcId)) {
+                string realSrcId = null;
+                string realword = null;
+                groupChat.UnPackGroupMsg(word, ref realword, ref realSrcId);
+                newMsg.description = realword;
+                newMsg.src = realSrcId;
+            } else {
+                newMsg.description = word;
+                newMsg.src = srcId;    
+            }
+
             bool isToCurrentWindow = srcId == chatViewModel.selectedChatRoom.id;
             isToCurrentWindow = true; // TODO check other window
             if (!isToCurrentWindow) {
                 foreach (var item in chatViewModel.chatRoomViewModels) {
                     if (srcId == item.id) {
                         item.noReadCount++;
-                        item.msgList.Add(new Model.Message { description = word, src = $"{srcId}:" });
+                        item.msgList.Add(newMsg);
                     }
                 }
                 return;
             }
+
             if (chatViewModel.selectedChatRoom == null)
                 return;
 
-            chatViewModel.selectedChatRoom.msgList.Add(new Model.Message { description = word, src = $"{srcId}:" });
+            chatViewModel.selectedChatRoom.msgList.Add(newMsg);
             showingMsgList.ItemsSource = null;
             showingMsgList.ItemsSource = chatViewModel.selectedChatRoom.msgList;
             showingMsgList.ScrollIntoView(showingMsgList.Items[showingMsgList.Items.Count - 1]);
+
         }
 
         private void MsgTbx_KeyDown(object sender, KeyEventArgs e) {
@@ -117,6 +149,7 @@ namespace InTouch
         }
 
         private void recvNewFile(byte[] newData) {
+            // TODO other count
             string srcId = null;
             string destId = null;
             FileStream fstream = null;
@@ -140,25 +173,29 @@ namespace InTouch
             OpenFileDialog dlg = new OpenFileDialog();
             Nullable<bool> result = dlg.ShowDialog();
             string filename = null;
-            // Process open file dialog box results
-            if (result == true) {
-                // Open document
-                filename = dlg.FileName;
+            if (result != true) {
+                return;
             }
+            filename = dlg.FileName;
             FileStream fstream = null;
             try {
                 fstream = new FileStream(filename, FileMode.Open, FileAccess.Read);
-            } catch (Exception) {
-                // TODO error message?
+            } catch (Exception e) {
+                MessageBox.Show(e.Message, "文件不存在");
                 return;
             }
             string srcId = App.user.userName;
             string destId = chatViewModel.selectedChatRoom.id;
             string targetIP = chatViewModel.selectedChatRoom.addressInfo.IPAddress;
-            int targetPort = P2PListener.FILEMSGLISTENPORT;
+            int targetPort = P2PListener.FILELISTENPORT;
             byte[] data = AppProtocol.PackFile(fstream, srcId, destId);
             fstream.Close();
             P2PSender.getInstance().SendData(data, targetIP, targetPort);
+
+            chatViewModel.selectedChatRoom.msgList.Add(new Model.Message { description = $"文件：{filename.Substring(filename.LastIndexOf('\\') + 1)}", src = "我" });
+            showingMsgList.ItemsSource = null;
+            showingMsgList.ItemsSource = chatViewModel.selectedChatRoom.msgList;
+            showingMsgList.ScrollIntoView(showingMsgList.Items[showingMsgList.Items.Count - 1]);
         }
 
         private void FolderPlusIcon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
@@ -209,19 +246,96 @@ namespace InTouch
         }
 
 
-        [System.Runtime.InteropServices.DllImport("gdi32.dll")]
-        public static extern bool DeleteObject(IntPtr hObject);
+        
         private void RecvNewFrame(System.Drawing.Bitmap newFrame) {
-             
-
-            IntPtr myImagePtr = newFrame.GetHbitmap();     //创建GDI对象，返回指针 //TODO
-            BitmapSource imgsource = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(myImagePtr, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());  //创建imgSource
-
-            DeleteObject(myImagePtr); 
-            
-            
-            debugVideoImg.Source = imgsource;
+            debugVideoImg.Source = BitmaptoSrc(newFrame);
         }
         bool isPlayVideo = false;
+
+        private void ImageIcon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
+            OpenFileDialog dlg = new OpenFileDialog();
+            dlg.Filter = "图片文件|*.jpg;*.gif;*.bmp;*.png";
+            Nullable<bool> result = dlg.ShowDialog();
+            string filename = null;
+            if (result != true) {
+                return;
+            }
+            filename = dlg.FileName;
+            System.Drawing.Bitmap bitmap;
+            try {
+                bitmap = new System.Drawing.Bitmap(filename);
+            } catch (Exception ex) {
+                MessageBox.Show(ex.Message, "图片不存在");
+                return;
+            }
+            string srcId = App.user.userName;
+            string destId = chatViewModel.selectedChatRoom.id;
+            string targetIP = chatViewModel.selectedChatRoom.addressInfo.IPAddress;
+            int targetPort = P2PListener.WORDLISTENPORT;
+            byte[] data = AppProtocol.PackPhoto(bitmap, srcId, destId);
+            
+            P2PSender.getInstance().SendData(data, targetIP, targetPort);
+
+            chatViewModel.selectedChatRoom.msgList.Add(new Model.Message { description = $"图片：{filename.Substring(filename.LastIndexOf('\\') + 1)}", src = "我" });
+            showingMsgList.ItemsSource = null;
+            showingMsgList.ItemsSource = chatViewModel.selectedChatRoom.msgList;
+            showingMsgList.ScrollIntoView(showingMsgList.Items[showingMsgList.Items.Count - 1]);
+        }
+
+        private void recvNewPhoto(byte[] newData) {
+            string srcId = null;
+            string destId = null;
+            System.Drawing.Bitmap bitmap = AppProtocol.UnPackPhoto(newData, ref srcId, ref destId);
+
+            var newMsg = new Model.Message() { description = "", src = srcId, msg = BitmaptoSrc(bitmap), type = Model.Message.Type.Photo};
+
+            debugVideoImg.Source = BitmaptoSrc(bitmap);
+            chatViewModel.selectedChatRoom.msgList.Add(newMsg);
+            showingMsgList.ItemsSource = null;
+            showingMsgList.ItemsSource = chatViewModel.selectedChatRoom.msgList;
+            showingMsgList.ScrollIntoView(showingMsgList.Items[showingMsgList.Items.Count - 1]);
+
+            ListViewItem listViewItem = showingMsgList.ItemContainerGenerator.ContainerFromItem(newMsg) as ListViewItem;
+            Image image = FindVisualChild<Image>(listViewItem);
+            image.Source = BitmaptoSrc(bitmap);
+        }
+
+        private void UpdateBitmap() {
+            if (chatViewModel.selectedChatRoom == null)
+                return;
+            for (int i = 0; i < showingMsgList.Items.Count; i++) {
+                ListViewItem listViewItem = (ListViewItem)showingMsgList.ItemContainerGenerator.ContainerFromIndex(i);
+              
+            }
+        }
+
+
+        [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+        public static extern bool DeleteObject(IntPtr hObject);
+        private BitmapSource BitmaptoSrc(System.Drawing.Bitmap bitmap) {
+            IntPtr myImagePtr = bitmap.GetHbitmap();     //创建GDI对象，返回指针 //TODO
+            BitmapSource imgsource = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(myImagePtr, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());  //创建imgSource
+            DeleteObject(myImagePtr);
+            return imgsource;
+        }
+        
+        // TODO MARK update function, including right.. image..
+        
+        // TODO ref
+        private ChildType FindVisualChild<ChildType>(DependencyObject obj) where ChildType : DependencyObject {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++) {
+                DependencyObject child = VisualTreeHelper.GetChild(obj, i);
+                if (child != null && child is ChildType) {
+                    return child as ChildType;
+                } else {
+                    ChildType childOfChildren = FindVisualChild<ChildType>(child);
+                    if (childOfChildren != null) {
+                        return childOfChildren;
+                    }
+                }
+            }
+            return null;
+
+        }
     }
 }

@@ -96,7 +96,7 @@ namespace InTouch.NetWork {
                         recvClient.ReceiveBufferSize = byteBufferSize;
                         NetworkStream nwStream = recvClient.GetStream();
                         while (!nwStream.DataAvailable) {
-                            Thread.Sleep(10); // 等待对方流书写完成   
+                            Thread.Sleep(10); // 等待对方流建立  
                         }
                         var temp = System.Drawing.Image.FromStream(nwStream);
                         Application.Current.Dispatcher.BeginInvoke(RecvNewFrame, temp);

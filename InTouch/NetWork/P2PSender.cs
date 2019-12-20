@@ -29,17 +29,11 @@ namespace InTouch.NetWork
 
         public void SendData(byte[] data, string targetIP, int targetPort) {
             var tcpClient = new TcpClient() { ReceiveTimeout = 2000, SendTimeout = 2000, SendBufferSize = byteBufferSize };
-            int maxPort = targetPort + P2PListener.MAXPORTSPAN;
-            for (; targetPort < maxPort; targetPort++) {
-                try {
-                    tcpClient.Connect(targetIP, targetPort);
-                    break;
-                } catch (Exception e) {
-                    if (targetPort == maxPort -1) {
-                        MessageBox.Show(e.Message, "目标计算机未打开监听端口");
-                        return;
-                    }
-                }
+            try {
+                tcpClient.Connect(targetIP, targetPort);
+            } catch (Exception e) {                
+                MessageBox.Show(e.Message, "目标计算机未打开监听端口");
+                return;                
             }            
 
             try {

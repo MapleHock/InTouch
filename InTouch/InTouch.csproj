@@ -103,6 +103,8 @@
     <Compile Include="Model\User.cs" />
     <Compile Include="NetWork\AppProtocol.cs" />
     <Compile Include="NetWork\Audio.cs" />
+    <Compile Include="NetWork\Emoji.cs" />
+    <Compile Include="NetWork\groupChat.cs" />
     <Compile Include="NetWork\P2PListener.cs" />
     <Compile Include="NetWork\P2PSender.cs" />
     <Compile Include="NetWork\UDPListener.cs" />

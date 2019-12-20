@@ -28,12 +28,12 @@ namespace InTouch {
                 userName = UserNameTbx.Text
             };
             App.LoadAddressBook(UserNameTbx.Text);
-            App.wordListener = new P2PListener(P2PListener.WORDMSGLISTENPORT);
+            App.wordListener = new P2PListener(P2PListener.WORDLISTENPORT);
             App.wordListener.BeginListen();
-            App.fileListener = new P2PListener(P2PListener.FILEMSGLISTENPORT);
+            App.fileListener = new P2PListener(P2PListener.FILELISTENPORT);
             App.fileListener.BeginListen();
-            App.udpListener = new UDPListener();
-            App.udpListener.BeginListen();
+            UDPListener.getInstance();
+            UDPListener.getInstance().BeginListen();
             this.Close();
         }
     }

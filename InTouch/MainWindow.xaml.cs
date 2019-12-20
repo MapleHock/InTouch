@@ -14,6 +14,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 using MaterialDesignThemes.Wpf;
+using InTouch.NetWork;
 
 namespace InTouch {
     /// <summary>
@@ -24,8 +25,6 @@ namespace InTouch {
         private chattingPage chattingPage;
         public MainWindow() {
             InitializeComponent();
-            //testWindow test = new testWindow();
-            //test.Show();
         }
 
 
@@ -58,7 +57,8 @@ namespace InTouch {
 
             App.wordListener.EndListen();
             App.fileListener.EndListen();
-            App.udpListener.EndListen();
+            UDPListener.getInstance().EndListen();
+            UDPSender.getInstance().EndUDPSender();
         }
     }
 }

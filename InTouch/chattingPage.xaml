@@ -52,6 +52,7 @@
                         <StackPanel>
                             <Label FontSize="8" Content="{Binding Path=src}"/>
                             <Label Content="{Binding Path=description}"/>
+                            <Image Source="{Binding Path=msg}"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListView.ItemTemplate>
@@ -63,7 +64,8 @@
                                              MouseLeftButtonDown="VideoIcon_MouseLeftButtonDown"/>
                     <materialDesign:PackIcon Kind="Audio" Margin="0, 0, 5, 0"
                                              MouseLeftButtonDown="AudioIcon_MouseLeftButtonDown"/>
-                    <materialDesign:PackIcon Kind="Image" Margin="0, 0, 5, 0"/>
+                    <materialDesign:PackIcon Kind="Image" Margin="0, 0, 5, 0"
+                                             MouseLeftButtonDown="ImageIcon_MouseLeftButtonDown"/>
                     <materialDesign:PackIcon Kind="FolderPlus"  Margin="0, 0, 5, 0"
                                              MouseLeftButtonDown="FolderPlusIcon_MouseLeftButtonDown"/>
 

@@ -32,6 +32,9 @@ namespace InTouch {
         static public bool LoadAddressBook(string userName) {
             addressBook = new AddressBook();
             string path = $"userInfo\\{userName}AddressList.txt";
+            if (Directory.Exists("userInfo")) {
+                Directory.CreateDirectory("userInfo");
+            }
             if (!File.Exists(path)) {
                 File.Create(path).Close();
             }
@@ -40,23 +43,46 @@ namespace InTouch {
                     string line;
                     while ((line = sr.ReadLine()) != null) {
                         string[] para = line.Split(';');
-                        addressBook.items.Add(new AddressBook.Item() {
-                            UserName = para[0],
-                            Alias = para[1]
-                        });
+                        if (para.Length == 2) {
+                            addressBook.items.Add(new AddressBook.Item() {
+                                UserName = para[0],
+                                Alias = para[1],
+                                isGroup = false
+                            });
+                        } else {
+                            string[] groupUser = new string[para.Length - 2];
+                            for (int i = 0; i < groupUser.Length; i++) {
+                                groupUser[i] = para[i + 2];
+                            }
+                            addressBook.items.Add(new AddressBook.Item() {
+                                UserName = para[0],
+                                Alias = para[1],
+                                isGroup = true,
+                                GroupUserName = groupUser
+                            });
+                        }
+                        
                     }
                 }
+                QueryAllitem();
             } catch (Exception e) {
                 MessageBox.Show(e.Message);
                 return false;
             }
+            return true;
+        }
 
+        public static void QueryAllitem() {
             bool isAllQuerySucc = true;
             foreach (var item in addressBook.items) {
+                if (item.isGroup) { 
+                    item.isOnline = false;
+                    continue;
+                }
                 string recv = NetWork.CSClient.getInstance().SendAMsg($"q{item.UserName}");
                 switch (recv) {
                     case "error":
-                        isAllQuerySucc = false;//TODO null ipshow?
+                        isAllQuerySucc = false;
                         break;
                     case "n":
                         item.isOnline = false;
@@ -71,8 +97,9 @@ namespace InTouch {
             if (!isAllQuerySucc) {
                 MessageBox.Show("部分好友在线状态未能成功查询");
             }
-            return true;
-        } // TODO logout
+        }
+
+
 
         //static public void addChattingbook(AddressBook.Item newItem) {
         //    chattingBook.items.Add(newItem);
