@@ -14,7 +14,7 @@ namespace InTouch.NetWork
     public class P2PSender {
         private static P2PSender instance = null;
 
-        private const int byteBufferSize = 16 * 1024 * 1024; // 16MB
+        public const int byteBufferSize = 4 * 1024 * 1024; // 16MB
 
         public static P2PSender getInstance() {
             if (instance == null)
@@ -47,6 +47,12 @@ namespace InTouch.NetWork
             }
         }
 
+        public void SendDataGroup(byte[][] dataGroup, string targetIP, int targetPort) {
+            for (int i = 0; i < dataGroup.Length; i++) {
+                // 非持续性传输，每次报文断开再连接
+                SendData(dataGroup[i], targetIP, targetPort);
+            }
+        }
 
     }
 }

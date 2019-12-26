@@ -92,6 +92,9 @@
     <Compile Include="AddressListPage.xaml.cs">
       <DependentUpon>AddressListPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="audioWindow.xaml.cs">
+      <DependentUpon>audioWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="chattingPage.xaml.cs">
       <DependentUpon>chattingPage.xaml</DependentUpon>
     </Compile>
@@ -103,22 +106,28 @@
     <Compile Include="Model\User.cs" />
     <Compile Include="NetWork\AppProtocol.cs" />
     <Compile Include="NetWork\Audio.cs" />
-    <Compile Include="NetWork\Emoji.cs" />
     <Compile Include="NetWork\groupChat.cs" />
     <Compile Include="NetWork\P2PListener.cs" />
     <Compile Include="NetWork\P2PSender.cs" />
     <Compile Include="NetWork\UDPListener.cs" />
     <Compile Include="NetWork\UDPSender.cs" />
     <Compile Include="NetWork\Video.cs" />
-    <Compile Include="testWindow.xaml.cs">
-      <DependentUpon>testWindow.xaml</DependentUpon>
+    <Compile Include="videoWindow.xaml.cs">
+      <DependentUpon>videoWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="ViewModel\AddressBookViewModel.cs" />
     <Compile Include="ViewModel\ChatViewModel.cs" />
     <Compile Include="ViewModel\RelayCommand.cs" />
     <Compile Include="ViewModel\UserViewModel.cs" />
     <Compile Include="ViewModel\ViewModelBase.cs" />
+    <Compile Include="WelComePage.xaml.cs">
+      <DependentUpon>WelComePage.xaml</DependentUpon>
+    </Compile>
     <Page Include="AddressListPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="audioWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -142,7 +151,11 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="testWindow.xaml">
+    <Page Include="videoWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="WelComePage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

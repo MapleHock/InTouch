@@ -24,10 +24,10 @@ namespace InTouch.NetWork {
 
         private IPEndPoint serverIPE;
         private Socket socket = null;
-        private string serverIP = "166.111.140.57"; // TODO const
+        private string serverIP = "166.111.140.57"; 
         private int serverPort = 8000;
         private int timeOut = 5000;
-        private int byteBufferSize = 32; // TODO large?
+        private int byteBufferSize = 32; 
 
 
         public string SendAMsg(string msg) {
@@ -44,7 +44,7 @@ namespace InTouch.NetWork {
                 byte[] recvBytes = new byte[byteBufferSize];
                 int byteLength = socket.Receive(recvBytes);
                 recvMsg = Encoding.UTF8.GetString(recvBytes, 0, byteLength);
-                socket.Disconnect(true); // TODO resueabe ?
+                socket.Disconnect(true); 
                 socket.Close();
                 return recvMsg;
             } catch (Exception e) {

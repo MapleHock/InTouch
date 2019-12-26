@@ -16,6 +16,7 @@ namespace InTouch {
     /// </summary>
     public partial class App : Application {
 
+        public static MainWindow mainWindow;
 
         public static AddressBook addressBook;
 
@@ -27,12 +28,10 @@ namespace InTouch {
 
         public static UDPListener udpListener;
 
-        //public static AddressBook chattingBook = new AddressBook(); // TODO add
-
-        static public bool LoadAddressBook(string userName) {
+        public static bool LoadAddressBook(string userName) {
             addressBook = new AddressBook();
             string path = $"userInfo\\{userName}AddressList.txt";
-            if (Directory.Exists("userInfo")) {
+            if (!Directory.Exists("userInfo")) {
                 Directory.CreateDirectory("userInfo");
             }
             if (!File.Exists(path)) {
@@ -99,7 +98,35 @@ namespace InTouch {
             }
         }
 
+        public static void UpdateAddressBook() {
 
+            string path = $"userInfo\\{user.userName}AddressList.txt";
+            if (Directory.Exists("userInfo")) {
+                Directory.CreateDirectory("userInfo");
+            }
+            if (!File.Exists(path)) {
+                File.Create(path).Close();
+            }
+            try {
+                StreamWriter sw = new StreamWriter(path, false);
+                string line = null;
+                foreach (var item in addressBook.items) {
+                    if (item.isGroup) {
+                        line = $"{item.UserName};{item.Alias}";
+                        foreach (var gUserName in item.GroupUserName) {
+                            line += ";" + gUserName;
+                        }
+                    } else {
+                        line = $"{item.UserName};{item.Alias}";
+                    }
+                    sw.WriteLine(line);
+                }
+                sw.Close();
+            } catch (Exception e) {
+                MessageBox.Show(e.Message, "通讯录更新失败");
+            }
+            
+        }
 
         //static public void addChattingbook(AddressBook.Item newItem) {
         //    chattingBook.items.Add(newItem);

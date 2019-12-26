@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,10 +9,10 @@ using System.Threading.Tasks;
 
 namespace InTouch.Model {
     public class AddressBook {
-        public List<Item> items { get; set; }
+        public ObservableCollection<Item> items { get; set; }
 
         public AddressBook() {
-            items = new List<Item>();
+            items = new ObservableCollection<Item>();
         }
         // 文件中
         // userName(groupId)/Alias/[GroupUserName...]

@@ -27,7 +27,7 @@ namespace InTouch.NetWork {
         private IPAddress localIP = null;
         int listenPort;
        
-        private const int byteBufferSize = 16 * 1024 * 1024; // 15 + 1M 最大1M报头
+        public const int byteBufferSize = 4 * 1024 * 1024; // 4M 
         byte[] recvBytes = new byte[byteBufferSize];
 
         // 程序具体实行相关，线程间通信
@@ -65,7 +65,7 @@ namespace InTouch.NetWork {
             //        break;
             //    default:
             //        break;
-            //} // TODO
+            //} 
             // 尝试不同的端口号，从起点向上搜索 MAXPORTSPAN 个端口，有空则使用
             IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
             IPEndPoint[] ipEndPoints = ipProperties.GetActiveTcpListeners();
@@ -125,7 +125,7 @@ namespace InTouch.NetWork {
                     }                    
                 }
 
-                Thread.Sleep(500); // TODO减小CPU消耗
+                Thread.Sleep(500); 
             }
             return;
         }

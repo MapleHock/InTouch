@@ -13,6 +13,7 @@ namespace InTouch.NetWork {
         public static RecvNewDataHandler WordDealer = null;
         public static RecvNewDataHandler FileDealer = null;
         public static RecvNewDataHandler PhotoDealer = null;
+        public static RecvNewDataHandler ControlDealer = null; 
         public enum MessageType {
             Invalid,
             word,
@@ -38,6 +39,7 @@ namespace InTouch.NetWork {
                     PhotoDealer?.Invoke(dataPack);
                     break;
                 case MessageType.control:
+                    ControlDealer?.Invoke(dataPack);
                     break;
                 default:
                     break;
@@ -89,63 +91,105 @@ namespace InTouch.NetWork {
             word = Encoding.UTF8.GetString(recvData, headerEnd + 1, optionalLength);
         }
 
-        public static byte[] PackFile(FileStream fstream, string srcId, string destId) {
+
+        // optionl 填写：   文件名;seq/TotalSeg$
+        public static byte[][] PackFile(FileStream fstream, string srcId, string destId) {
             // optional 中，先写overview，以$结尾，然后写文件数据
-            byte[] appDataPack = null;
+            byte[][] appDataPack = null;
             byte[] srcIdSeg = Encoding.UTF8.GetBytes(srcId);
             byte[] destIdSeg = Encoding.UTF8.GetBytes(destId);
-            byte[] fileSeg = new byte[(int)fstream.Length];
-            fstream.Read(fileSeg, 0, (int)fstream.Length);
+            byte[] lengthSeg = null;
+            byte[] fileOverviewSeg = null;
+            int fileSegNum = (int)(fstream.Length / (P2PListener.byteBufferSize - 1024) + 1);
             string fileName = fstream.Name.Substring(fstream.Name.LastIndexOf('\\') + 1);
-            byte[] fileOverviewSeg = Encoding.UTF8.GetBytes(fileName + '$');
-            byte[] lengthSeg = System.BitConverter.GetBytes(fileSeg.Length + fileOverviewSeg.Length);
 
-            appDataPack = new byte[srcIdSeg.Length + destIdSeg.Length + 1 + lengthSeg.Length + fileOverviewSeg.Length + fileSeg.Length + SeparatorNum];
-            int offset = 0;
-            srcIdSeg.CopyTo(appDataPack, offset);
-            offset += srcIdSeg.Length;
-            appDataPack[offset] = Convert.ToByte('|');
-            offset++;
-            destIdSeg.CopyTo(appDataPack, offset);
-            offset += destIdSeg.Length;
-            appDataPack[offset] = Convert.ToByte('|');
-            offset++;
-            appDataPack[offset] = (byte)MessageType.file;
-            offset++;
-            appDataPack[offset] = Convert.ToByte('|'); // 124
-            offset++;
-            lengthSeg.CopyTo(appDataPack, offset);
-            offset += lengthSeg.Length;
-            appDataPack[offset] = Convert.ToByte('$'); // 36
-            offset++;
-            fileOverviewSeg.CopyTo(appDataPack, offset);
-            offset += fileOverviewSeg.Length;
-            fileSeg.CopyTo(appDataPack, offset);
-            return appDataPack;
+            
+            appDataPack = new byte[fileSegNum][];
+            
+            for (int i = 0; i < fileSegNum; i++) {
+                byte[] fileSeg = new byte[Math.Min((P2PListener.byteBufferSize - 1024), fstream.Length - i * (P2PListener.byteBufferSize - 1024))];
+
+                fstream.Read(fileSeg, 0, fileSeg.Length);
+                fileOverviewSeg = Encoding.UTF8.GetBytes($"{fileName};{i + 1}/{fileSegNum}$");
+                lengthSeg = System.BitConverter.GetBytes(fileSeg.Length + fileOverviewSeg.Length);
+                appDataPack[i] = new byte[srcIdSeg.Length + destIdSeg.Length + 1 + lengthSeg.Length + fileOverviewSeg.Length + fileSeg.Length + SeparatorNum];
+                int offset = 0;
+                srcIdSeg.CopyTo(appDataPack[i], offset);
+                offset += srcIdSeg.Length;
+                appDataPack[i][offset] = Convert.ToByte('|');
+                offset++;
+                destIdSeg.CopyTo(appDataPack[i], offset);
+                offset += destIdSeg.Length;
+                appDataPack[i][offset] = Convert.ToByte('|');
+                offset++;
+                appDataPack[i][offset] = (byte)MessageType.file;
+                offset++;
+                appDataPack[i][offset] = Convert.ToByte('|'); // 124
+                offset++;
+                lengthSeg.CopyTo(appDataPack[i], offset);
+                offset += lengthSeg.Length;
+                appDataPack[i][offset] = Convert.ToByte('$'); // 36
+                offset++;
+                fileOverviewSeg.CopyTo(appDataPack[i], offset);
+                offset += fileOverviewSeg.Length;
+                fileSeg.CopyTo(appDataPack[i], offset);
+            }
+          return appDataPack;
         }
 
-        public static void UnPackFile(byte[] recvData, ref FileStream fstream, ref string srcId, ref string destId) {
-            int headerEnd = indexOfBytes(recvData, Convert.ToByte('$'), 0, recvData.Length);
-            int srcIdEnd = indexOfBytes(recvData, Convert.ToByte('|'), 0, headerEnd);
-            srcId = Encoding.UTF8.GetString(recvData, 0, srcIdEnd - 0);
-            int destIdEnd = indexOfBytes(recvData, Convert.ToByte('|'), srcIdEnd + 1, headerEnd);
-            destId = Encoding.UTF8.GetString(recvData, srcIdEnd + 1, destIdEnd - srcIdEnd - 1);
-            int optionalLength = BitConverter.ToInt32(recvData, destIdEnd + 3);
+        public static void UnPackFile(byte[][]recvDataGroup, byte[] lastData, ref FileStream fstream, ref string srcId, ref string destId) {
+            int headerEnd = indexOfBytes(lastData, Convert.ToByte('$'), 0, lastData.Length);
+            int srcIdEnd = indexOfBytes(lastData, Convert.ToByte('|'), 0, headerEnd);
+            srcId = Encoding.UTF8.GetString(lastData, 0, srcIdEnd - 0);
+            int destIdEnd = indexOfBytes(lastData, Convert.ToByte('|'), srcIdEnd + 1, headerEnd);
+            destId = Encoding.UTF8.GetString(lastData, srcIdEnd + 1, destIdEnd - srcIdEnd - 1);
+            int optionalLength = BitConverter.ToInt32(lastData, destIdEnd + 3);
 
-            int overviewEnd = indexOfBytes(recvData, Convert.ToByte('$'), headerEnd + 1, recvData.Length - headerEnd - 1);
-            int overviewLength = overviewEnd - headerEnd;
-            string fileName = Encoding.UTF8.GetString(recvData, headerEnd + 1, overviewEnd - headerEnd - 1);
-            if (Directory.Exists("recvFile")) {
+            int fileNameEnd = indexOfBytes(lastData, Convert.ToByte(';'), headerEnd + 1, lastData.Length - headerEnd - 1);
+
+            string fileName = Encoding.UTF8.GetString(lastData, headerEnd + 1, fileNameEnd - headerEnd - 1);
+            if (!Directory.Exists("recvFile")) {
                 Directory.CreateDirectory("recvFile");
             }
             try {
                 fstream = new FileStream($"recvFile\\{fileName}", FileMode.Create, FileAccess.Write);
-                fstream.Write(recvData, overviewEnd + 1, optionalLength - overviewLength);
+                for (int i = 0; i < recvDataGroup.Length; i++) {
+                    fstream.Write(recvDataGroup[i],0,recvDataGroup[i].Length);
+                }               
             } catch (Exception e) {
                 MessageBox.Show(e.Message);
                 return;
             }
             
+        }
+
+        public static byte[] UnPackFileSeg(byte[] recvData) {
+            int headerEnd = indexOfBytes(recvData, Convert.ToByte('$'), 0, recvData.Length);
+            int srcIdEnd = indexOfBytes(recvData, Convert.ToByte('|'), 0, headerEnd);
+            int destIdEnd = indexOfBytes(recvData, Convert.ToByte('|'), srcIdEnd + 1, headerEnd);
+            int optionalLength = BitConverter.ToInt32(recvData, destIdEnd + 3);
+            int overviewEnd = indexOfBytes(recvData, Convert.ToByte('$'), headerEnd + 1, recvData.Length - headerEnd - 1);
+            int overviewLength = overviewEnd - headerEnd;
+            int fileSeglength = optionalLength - overviewLength;
+            byte[] fileSeg = recvData.Skip(overviewEnd).Take(fileSeglength).ToArray();
+            return fileSeg;
+        }
+
+        public static int findFileTotalNum(byte[] recvData) {
+            int headerEnd = indexOfBytes(recvData, Convert.ToByte('$'), 0, recvData.Length);
+            int overViewEnd = indexOfBytes(recvData, Convert.ToByte('$'), headerEnd + 1, recvData.Length - headerEnd - 1);
+            int slashEnd = indexOfBytes(recvData, Convert.ToByte('/'), headerEnd, overViewEnd - headerEnd);
+            int totalNum = Convert.ToInt32(Encoding.UTF8.GetString(recvData, slashEnd + 1, overViewEnd - slashEnd - 1));
+            return totalNum;
+        }
+
+        public static int findFileSeq(byte[] recvData) {
+            int headerEnd = indexOfBytes(recvData, Convert.ToByte('$'), 0, recvData.Length);
+            int overViewEnd = indexOfBytes(recvData, Convert.ToByte('$'), headerEnd + 1, recvData.Length - headerEnd - 1);
+            int slashEnd = indexOfBytes(recvData, Convert.ToByte('/'), headerEnd, overViewEnd - headerEnd);
+            int semicolonEnd = indexOfBytes(recvData, Convert.ToByte(';'), headerEnd, overViewEnd - headerEnd);
+            int Seq = Convert.ToInt32(Encoding.UTF8.GetString(recvData, semicolonEnd + 1, slashEnd - semicolonEnd - 1));
+            return Seq;
         }
 
         public static byte[] PackPhoto(System.Drawing.Bitmap bitmap, string srcId, string destId) {
@@ -189,6 +233,66 @@ namespace InTouch.NetWork {
 
             MemoryStream mStream = new MemoryStream(recvData, headerEnd + 1, optionalLength);
             return (System.Drawing.Bitmap)System.Drawing.Image.FromStream(mStream);
+        }
+
+        public enum ControlType {
+            QAUDIO,
+            AAUDIO,
+            RAUDIO,
+            QVIDEO,
+            AVIDEO,
+            RVIDEO,
+            NEWGROUP
+        }
+
+        public static byte[] PackControl(ControlType controlType, string srcId, string destId, string optional = null) {
+            byte[] appDataPack = null;
+            byte[] srcIdSeg = Encoding.UTF8.GetBytes(srcId);
+            byte[] destIdSeg = Encoding.UTF8.GetBytes(destId);
+            byte[] controlSeg = { (byte)controlType };
+            byte[] optionalSeg = { };
+            if (optional != null) {
+                optionalSeg = Encoding.UTF8.GetBytes(optional);
+            }
+            byte[] lengthSeg = System.BitConverter.GetBytes(controlSeg.Length + optionalSeg.Length);
+
+            appDataPack = new byte[srcIdSeg.Length + destIdSeg.Length + 1 + lengthSeg.Length + controlSeg.Length + optionalSeg.Length + SeparatorNum];
+            int offset = 0;
+            srcIdSeg.CopyTo(appDataPack, offset);
+            offset += srcIdSeg.Length;
+            appDataPack[offset] = Convert.ToByte('|');
+            offset++;
+            destIdSeg.CopyTo(appDataPack, offset);
+            offset += destIdSeg.Length;
+            appDataPack[offset] = Convert.ToByte('|');
+            offset++;
+            appDataPack[offset] = (byte)MessageType.control;
+            offset++;
+            appDataPack[offset] = Convert.ToByte('|'); // 124
+            offset++;
+            lengthSeg.CopyTo(appDataPack, offset);
+            offset += lengthSeg.Length;
+            appDataPack[offset] = Convert.ToByte('$'); // 36
+            offset++;
+            controlSeg.CopyTo(appDataPack, offset);
+            offset += controlSeg.Length;
+            optionalSeg.CopyTo(appDataPack, offset);
+            return appDataPack;
+        }
+
+        public static ControlType UnPackControl(byte[] recvData, ref string srcId, ref string destId, ref string optional) {
+            int headerEnd = indexOfBytes(recvData, Convert.ToByte('$'), 0, recvData.Length);
+            int srcIdEnd = indexOfBytes(recvData, Convert.ToByte('|'), 0, headerEnd);
+            srcId = Encoding.UTF8.GetString(recvData, 0, srcIdEnd - 0);
+            int destIdEnd = indexOfBytes(recvData, Convert.ToByte('|'), srcIdEnd + 1, headerEnd);
+            destId = Encoding.UTF8.GetString(recvData, srcIdEnd + 1, destIdEnd - srcIdEnd - 1);
+
+            int optionalLength = BitConverter.ToInt32(recvData, destIdEnd + 3);
+            if (headerEnd + 2 < recvData.Length) {
+                optional = Encoding.UTF8.GetString(recvData, headerEnd + 2, optionalLength - 1);
+            }
+            
+            return (ControlType)recvData[headerEnd + 1];
         }
 
         // ---------------- 辅助函数,返回第一个匹配的byte

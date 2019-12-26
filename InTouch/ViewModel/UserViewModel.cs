@@ -39,8 +39,8 @@ namespace InTouch.ViewModel
             }
 
             
-            var mainWindow = new MainWindow();
-            mainWindow.Show();
+            App.mainWindow = new MainWindow();
+            App.mainWindow.Show();
             isLogging = false;
         }
 

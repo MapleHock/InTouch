@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -31,12 +32,12 @@ namespace InTouch.ViewModel {
 
     public class ChatViewModel : ViewModelBase {
         
-        public List<ChatRoomViewModel> chatRoomViewModels { get; set; }
+        public ObservableCollection<ChatRoomViewModel> chatRoomViewModels { get; set; }
 
         public ChatRoomViewModel selectedChatRoom;
 
         public ChatViewModel() {
-            chatRoomViewModels = new List<ChatRoomViewModel>();
+            chatRoomViewModels = new ObservableCollection<ChatRoomViewModel>();
             foreach (var item in App.addressBook.items) {
                 var chatRoomViewModel = new ChatRoomViewModel();
                 chatRoomViewModel.addressInfo = item; 
@@ -44,6 +45,13 @@ namespace InTouch.ViewModel {
                 //chatRoomViewModel.msgList = new List<Message>();
                 chatRoomViewModels.Add(chatRoomViewModel);
             }
+        }
+
+        public void updateChatList(AddressBook.Item item) {
+            var chatRoomViewModel = new ChatRoomViewModel();
+            chatRoomViewModel.addressInfo = item;
+            chatRoomViewModel.id = item.UserName;
+            chatRoomViewModels.Add(chatRoomViewModel);
         }
     }
 

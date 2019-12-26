@@ -19,14 +19,24 @@
         </Grid.ColumnDefinitions>
         <!--Grid1, user page choose -->
         <StackPanel Grid.Column="0" x:Name="chooseStack" Background="#DDDDDD">
-            <DockPanel Margin="0, 10">
-                <materialDesign:PackIcon Kind="Search" Foreground="Black" MinWidth="50" MinHeight="50" BorderThickness="5"/>
-                <TextBox Name="searchKey" FontSize="22" VerticalContentAlignment="Center"/>
-                <!--TODO Searck-->
+            <DockPanel Margin="0, 10" ToolTip="输入你希望拉入群的朋友的id（用分号分割），点击左侧图像进行确认并创建群聊" Cursor="Hand">
+                <materialDesign:PackIcon Kind="PeopleGroup" Foreground="Black" MinWidth="50" MinHeight="50" BorderThickness="5" MouseLeftButtonDown="NewGroup_MouseLeftButtonDown"/>
+                <TextBox Name="groupUserTbx" FontSize="14" VerticalContentAlignment="Center" TextWrapping="Wrap"/>
             </DockPanel>
-            <DockPanel Margin="0, 10" MouseLeftButtonDown="NewFriend_MouseLeftButtonDown">
-                <materialDesign:PackIcon Kind="AccountAdd" Foreground="Green" MinWidth="50" MinHeight="50" BorderThickness="5"/>
-                <Label Content="新的朋友" FontSize="22" VerticalContentAlignment="Center"/>
+
+            <DockPanel Margin="0, 5" MouseLeftButtonDown="Update_MouseLeftButtonDown" Cursor="Hand">
+                <materialDesign:PackIcon Kind="Update"  Foreground="Green" MinWidth="40" MinHeight="40" BorderThickness="5"/>
+                <Label Content="刷新好友在线状态" FontSize="16" VerticalContentAlignment="Center"/>
+            </DockPanel>
+
+            <DockPanel Margin="0, 5" MouseLeftButtonDown="NewFriend_MouseLeftButtonDown" Cursor="Hand">
+                <materialDesign:PackIcon Kind="AccountAdd" Foreground="Green" MinWidth="40" MinHeight="40" BorderThickness="5"/>
+                <Label Content="新的朋友" FontSize="16" VerticalContentAlignment="Center"/>
+            </DockPanel>
+
+            <DockPanel Margin="0, 5" MouseLeftButtonDown="Delete_MouseLeftButtonDown" Cursor="Hand">
+                <materialDesign:PackIcon Kind="Remove" Foreground="Green" MinWidth="40" MinHeight="40" BorderThickness="5"/>
+                <Label Content="删除好友" FontSize="16" VerticalContentAlignment="Center"/>
             </DockPanel>
 
             <ListView Name="contactList" Margin="0, 10" SelectionChanged="ContactList_SelectionChanged">

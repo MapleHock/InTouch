@@ -11,38 +11,47 @@ using System.Threading;
 using System.Windows;
 
 namespace InTouch.NetWork {
-    class Audio {
+    public class Audio {
         public WaveIn recorder = null;
         public WaveOut player = null;
         BufferedWaveProvider bufferedWaveProvider = null;
+        int StandardSampleNum = 0;
+        const int bufferMillisecond = 100;
 
         UdpClient udpSender;
         UdpClient udpListener;
-        IPEndPoint ipe;
-        bool isChatting = false;
-        public Audio() {
+        IPEndPoint RemoteListenIPE;
+        IPEndPoint RemoteSendIPE;
+
+        Thread AudioListenThread = null;
+        const int AUDIOLISTENPORT = 9000;
+        const int AUDIOSENDERPORT = 9001;
+        public bool isChatting = false;
+
+
+        public Audio(string targetIP) {
+            RemoteListenIPE = new IPEndPoint(IPAddress.Parse(targetIP), AUDIOLISTENPORT);
+            RemoteSendIPE = new IPEndPoint(IPAddress.Any, AUDIOSENDERPORT);
             recorder = new WaveIn();
             player = new WaveOut();
             bufferedWaveProvider = new BufferedWaveProvider(recorder.WaveFormat);
+            StandardSampleNum = recorder.WaveFormat.ConvertLatencyToByteSize(bufferMillisecond);
         }
 
-        public void AudioChatBegin(IPAddress address, int port) {
+        public void AudioChatBegin() {
             // network setting 
-            
-            ipe = new IPEndPoint(address, port);
-            udpSender = new UdpClient();
-
-            udpListener = new UdpClient(port);  // TODO System.Net.Sockets.SocketException:“通常每个套接字地址(协议/网络地址/端口)只允许使用一次
-            udpSender.Connect(ipe);
             isChatting = true;
-            var task = new Task(UDPReceive);
-            task.Start();
+            udpSender = new UdpClient(AUDIOSENDERPORT);
+            udpListener = new UdpClient(AUDIOLISTENPORT);
+
+            AudioListenThread = new Thread(UDPReceive) { Name="audio listen thread"};
+            AudioListenThread.Start();
 
             // local setting
             try {
-                isChatting = true;
+                
                 player.Init(bufferedWaveProvider);
-                recorder.BufferMilliseconds = 500;
+                recorder.BufferMilliseconds = bufferMillisecond;
                 player.Play();
                 recorder.DataAvailable += RecorderOnDataAvailable;
                 recorder.StartRecording();
@@ -56,6 +65,9 @@ namespace InTouch.NetWork {
 
         public void AudioChatEnd() {
             isChatting = false;
+            AudioListenThread.Join();
+            udpListener.Close();
+            udpSender.Close();
             player.Stop();
             recorder.StopRecording();
             player?.Dispose();
@@ -64,16 +76,26 @@ namespace InTouch.NetWork {
 
         private void RecorderOnDataAvailable(object sender, WaveInEventArgs waveInEventArgs) {
             // bufferedWaveProvider.AddSamples(waveInEventArgs.Buffer, 0, waveInEventArgs.BytesRecorded);
-            udpSender.Send(waveInEventArgs.Buffer, waveInEventArgs.BytesRecorded);
+            if (isChatting) {
+                udpSender.Send(waveInEventArgs.Buffer, waveInEventArgs.BytesRecorded, RemoteListenIPE);
+            }                       
         }
 
+        
         private void UDPReceive() {
             while (isChatting) {
-                try {
-                    byte[] udpBuffer = udpListener.Receive(ref ipe);
-                    bufferedWaveProvider.AddSamples(udpBuffer, 0, udpBuffer.Length);
-                } catch (Exception) {
-                }                
+                
+                if (udpListener.Available != 0) {
+                    RemoteSendIPE.Address = IPAddress.Any;
+                    try {
+                        byte[] udpBuffer = udpListener.Receive(ref RemoteSendIPE);
+                        bufferedWaveProvider.AddSamples(udpBuffer, 0, udpBuffer.Length);
+                        
+                    } catch (Exception) {
+                    }
+                }
+
+                Thread.Sleep(10);
             }
         }
     }

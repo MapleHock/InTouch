@@ -22,12 +22,10 @@
                         <WrapPanel>
                             <TextBlock Text="{Binding Path=addressInfo.Alias}" Margin="10, 0" MinWidth="150" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding Path=noReadCount}" Margin="10, 0" VerticalAlignment="Center"/>
-                            <!--TODO Last message-->
                         </WrapPanel>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
-            <Image Height="100" Name="debugVideoImg" Margin="0,0,0,500"/>
         </StackPanel>
 
         <!--Grid2, page render -->
@@ -38,7 +36,7 @@
                 <RowDefinition Height="2.5*"/>
             </Grid.RowDefinitions>
             <StackPanel Grid.Row="0" Background="#F5F5F5">
-                <Label Name="RoomTitle" Content="Title"/>
+                <Label Name="RoomTitle" Content=""/>
             </StackPanel>
 
             <!--<StackPanel Grid.Row="1" Background="#FAFAFA">
@@ -46,13 +44,13 @@
                 
             </StackPanel>-->
 
-            <ListView Grid.Row="1"  Name="showingMsgList" SelectionChanged="ShowingMsgList_SelectionChanged" Margin="0, 10" ScrollViewer.VerticalScrollBarVisibility="Auto" Background="#FAFAFA" materialDesign:ScrollBarAssist.ButtonsVisibility="Collapsed" >
+            <ListView Grid.Row="1"  Name="showingMsgList" SelectionChanged="ShowingMsgList_SelectionChanged" Margin="0, 10" ScrollViewer.VerticalScrollBarVisibility="Auto" Background="#FAFAFA" materialDesign:ScrollBarAssist.ButtonsVisibility="Collapsed" VirtualizingStackPanel.IsVirtualizing="False">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>
                             <Label FontSize="8" Content="{Binding Path=src}"/>
                             <Label Content="{Binding Path=description}"/>
-                            <Image Source="{Binding Path=msg}"/>
+                            <Image Source="{Binding Path=msg}" MaxWidth="300" MaxHeight="200"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListView.ItemTemplate>
@@ -61,18 +59,19 @@
             <StackPanel x:Name="SendStack" Grid.Row="3" Background="#EEEEEE">
                 <DockPanel>
                     <materialDesign:PackIcon Kind="Video" Margin="5, 0, 5, 0"
-                                             MouseLeftButtonDown="VideoIcon_MouseLeftButtonDown"/>
+                                             MouseLeftButtonDown="VideoIcon_MouseLeftButtonDown" Cursor="Hand"/>
                     <materialDesign:PackIcon Kind="Audio" Margin="0, 0, 5, 0"
-                                             MouseLeftButtonDown="AudioIcon_MouseLeftButtonDown"/>
+                                             MouseLeftButtonDown="AudioIcon_MouseLeftButtonDown" Cursor="Hand"/>
                     <materialDesign:PackIcon Kind="Image" Margin="0, 0, 5, 0"
-                                             MouseLeftButtonDown="ImageIcon_MouseLeftButtonDown"/>
+                                             MouseLeftButtonDown="ImageIcon_MouseLeftButtonDown" Cursor="Hand"/>
                     <materialDesign:PackIcon Kind="FolderPlus"  Margin="0, 0, 5, 0"
-                                             MouseLeftButtonDown="FolderPlusIcon_MouseLeftButtonDown"/>
+                                             MouseLeftButtonDown="FolderPlusIcon_MouseLeftButtonDown" Cursor="Hand"/>
 
                     <DockPanel HorizontalAlignment="Right">
+                        <Label  Name="timerLbl" Margin="0, 0, 5, 0" Visibility="Hidden"/>
                         <CheckBox Name="isUDPCbx" Content="使用UDP发送" Margin="0, 0, 5, 0"/>
                         <materialDesign:PackIcon Kind="SendCircleOutline" Margin="0, 0, 5, 0"
-                                             MouseLeftButtonDown="SendCircleOutlineIcon_MouseLeftButtonDown"/>
+                                             MouseLeftButtonDown="SendCircleOutlineIcon_MouseLeftButtonDown" Cursor="Hand" ToolTip="右ctrl键为发送快捷键"/>
                     </DockPanel>
                     
                 </DockPanel>

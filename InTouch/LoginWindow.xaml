@@ -16,7 +16,7 @@
     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="150" DataContext="{Binding Source={StaticResource userVM}}" IsEnabled="{Binding isLogging, Mode=OneWay}" IsEnabledChanged="StackPanel_IsEnabledChanged">
         <TextBox Text="{Binding userName}" Margin="10" materialDesign:HintAssist.Hint="用户名" Name="UserNameTbx"/>
         <TextBox Text="{Binding passWord}" Margin="10" materialDesign:HintAssist.Hint="密码"/>
-        <!--TODO-->
+
         <DockPanel Margin="10" VerticalAlignment="Center" HorizontalAlignment="Center">
             <Button Content="登陆" Command="{Binding loginCommand}" CommandParameter="{Binding ElementName=window}" Margin="0, 0, 10, 0" />
             <Button Content="清空" Command="{Binding clearCommand}" Margin="0,0,10,0"/>

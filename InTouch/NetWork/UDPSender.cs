@@ -86,24 +86,33 @@ namespace InTouch.NetWork {
             byte[] dataToSend = UpperDataQueue.First();
             byte[] dataPkt = makePkt(dataToSend, seq);
             sendData(dataPkt);
+            counter = 0;
             return CombSeqState(seq, false);
         }
 
+        int counter = 0;
         private State WaitACKProcess(byte seq) {
-            if (udpClient.Available == 0)
+            if (udpClient.Available == 0) {                
+                counter++;
+                if (counter >= 20) { // 超时重传， 时间阈值 20 * 500ms = 10s
+                    byte[] dataToSend = UpperDataQueue.First();
+                    byte[] dataPkt = makePkt(dataToSend, seq);
+                    sendData(dataPkt);
+                    counter = 0;
+                }
                 return CombSeqState(seq, false);
+            }
+                
             byte[] ackPack = udpClient.Receive(ref ipe);
             bool isPassCheck = checkPkt(ackPack);
             bool isSeqCorrect = ackPack[1] == seq;
             if (isPassCheck && isSeqCorrect) {
                 UpperDataQueue.Dequeue(); // 成功传输，此消息退出队列传输下一项
                 return CombSeqState((byte)(-seq + 1), true);
-            } else {
-                byte[] dataToSend = UpperDataQueue.First();
-                byte[] dataPkt = makePkt(dataToSend, seq);
-                sendData(dataPkt);
+            } else { // 接收到错误ack或者破损ack， 不动作
+                return CombSeqState(seq, false);
             }
-            return State.END;
+           
         }
 
         public void ReliableSendData(byte[] data, string targetIP) {
