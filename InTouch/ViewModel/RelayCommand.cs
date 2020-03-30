@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace InTouch.ViewModel {
+    // ViewModel的指令式基类
+    // 主要用于账户登陆窗口的交互，后主要还是使用事件响应机制，不再使用这个类
     public class RelayCommand : ICommand {
         private readonly Action _handler;
         private bool _isEnabled;

@@ -15,11 +15,15 @@ using InTouch.Model;
 
 namespace InTouch.NetWork {
     
-    
+    // 监听类
+    // 起名为P2PListener，实际为基于TCP的数据监听
     public class P2PListener {
         public const int MAXPORTSPAN = 10;
 
-        public const int WORDLISTENPORT = 8000;
+        // 两个端口
+        // 通用端口，用于文字消息、图片消息、控制消息传输
+        public const int GENERALLISTENPORT = 8000;
+        // 文件端口，用于文件传输，防止文件传输时其他功能无法使用
         public const int FILELISTENPORT = 8010;
 
         // 网络编程，传输层相关
@@ -27,7 +31,7 @@ namespace InTouch.NetWork {
         private IPAddress localIP = null;
         int listenPort;
        
-        public const int byteBufferSize = 4 * 1024 * 1024; // 4M 
+        public const int byteBufferSize = 4 * 1024 * 1024; // 4M buffer
         byte[] recvBytes = new byte[byteBufferSize];
 
         // 程序具体实行相关，线程间通信
@@ -85,6 +89,7 @@ namespace InTouch.NetWork {
             tcpListener = new TcpListener(localIP, listenPort); // 目标为本机该端口号的报文才被监听
         }
 
+        // 打开侦听线程
         public void BeginListen() {
             listenThread = new Thread(ListenData) { Name = $"listening: {listenPort.ToString()}"};
             try {
@@ -95,6 +100,7 @@ namespace InTouch.NetWork {
             }            
         }
 
+        // 侦听线程运行函数，若接到TCP连接请求，接受请求并且接受数据，然后引发事件，让应用层分发消息
         public void ListenData() {
             tcpListener.Start();
             listening = true;
@@ -130,6 +136,7 @@ namespace InTouch.NetWork {
             return;
         }
 
+        // 安全结束侦听线程
         public void EndListen() {
             listening = false;
             try {

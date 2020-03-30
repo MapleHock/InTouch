@@ -24,6 +24,9 @@ namespace InTouch {
         public Audio audio;
         DispatcherTimer timer;
         DateTime total;
+
+        // 音频聊天窗口
+        // 绑定音频通信类，并且实时刷新通话时长
         public audioWindow(Audio audio) {            
             InitializeComponent();
             this.audio = audio;

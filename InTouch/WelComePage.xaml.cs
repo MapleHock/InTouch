@@ -18,6 +18,7 @@ namespace InTouch {
     /// WelComePage.xaml 的交互逻辑
     /// </summary>
     public partial class WelComePage : Page {
+        // 欢迎页面，登入时显示
         public WelComePage() {
             InitializeComponent();
         }

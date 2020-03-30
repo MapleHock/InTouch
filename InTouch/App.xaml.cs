@@ -15,6 +15,7 @@ namespace InTouch {
     /// App.xaml 的交互逻辑
     /// </summary>
     public partial class App : Application {
+        // App后台数据类，声明为静态类能够更快执行
 
         public static MainWindow mainWindow;
 
@@ -22,12 +23,13 @@ namespace InTouch {
 
         public static User user;
 
-        public static P2PListener wordListener;
+        public static P2PListener generalListener;
 
         public static P2PListener fileListener;
 
         public static UDPListener udpListener;
 
+        // 假造通讯录
         public static bool LoadAddressBook(string userName) {
             addressBook = new AddressBook();
             string path = $"userInfo\\{userName}AddressList.txt";
@@ -71,6 +73,7 @@ namespace InTouch {
             return true;
         }
 
+        // 查询通讯联系人是否在线
         public static void QueryAllitem() {
             bool isAllQuerySucc = true;
             foreach (var item in addressBook.items) {
@@ -98,6 +101,7 @@ namespace InTouch {
             }
         }
 
+        // 更新通讯录
         public static void UpdateAddressBook() {
 
             string path = $"userInfo\\{user.userName}AddressList.txt";
@@ -127,10 +131,6 @@ namespace InTouch {
             }
             
         }
-
-        //static public void addChattingbook(AddressBook.Item newItem) {
-        //    chattingBook.items.Add(newItem);
-        //}
 
 
     }

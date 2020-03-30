@@ -12,22 +12,29 @@ using System.IO;
 using System.Threading;
 
 namespace InTouch.NetWork {
+    // 视频通话向相关类
     public class Video {
-        VideoCaptureDevice videoSource = new VideoCaptureDevice();
 
+        // 本地设备相关
+        VideoCaptureDevice videoSource = new VideoCaptureDevice();
         public delegate void RecvNewFrameHandler(System.Drawing.Bitmap newFrame);
         public event RecvNewFrameHandler RecvNewFrame;
+
+        // 网络相关
         TcpClient tcpSender;
         TcpListener tcpListener;
         IPEndPoint ipe;
         Thread tcpListenThread = null;
         const int VIDEOSTREAMLISTENPORT = 10000;
         const int byteBufferSize = 16 * 1024 * 1024;
-        bool isChatting = false;
+
+
+        // 变码率传输相关        
         bool isProcessing = false;
         System.Drawing.Bitmap bitmapToWrite = null;
 
         // 与应用层交互
+        bool isChatting = false;
         public delegate void TryConnectHandler(int second);
         public event  TryConnectHandler TryConnectCallBack;
         public bool isReject = false;
@@ -36,8 +43,8 @@ namespace InTouch.NetWork {
             ipe = new IPEndPoint(IPAddress.Parse(targetIP), VIDEOSTREAMLISTENPORT);
         }
 
-        
-        public bool SelectedDevice() {
+        // 选择摄像头
+        public bool SelectedDevice() { 
             try { // 防止设备还未选择对方就选择挂断
                 VideoCaptureDeviceForm captureDevice = new VideoCaptureDeviceForm(); // 设备选择窗口
                 videoSource = new VideoCaptureDevice();
@@ -55,6 +62,7 @@ namespace InTouch.NetWork {
             return false;
         }
 
+        // 开启视频聊天，建立listener，并且尝试连接到目标的listener
         public void BeginVideoChatting() {
             isChatting = true;
 
@@ -75,7 +83,9 @@ namespace InTouch.NetWork {
             tcpListenThread = new Thread(listenVideo) { Name = $"RecvVideo" };
             tcpListenThread.Start();
 
+            // 尝试连接到对方的listtener
             tcpSender = new TcpClient() { ReceiveTimeout = 2000, SendTimeout = 2000 };
+            // 60秒尝试连接
             for (int i = 0; i < 60; i++) {
                 if (isReject) {
                     EndVideoChatting();
@@ -116,6 +126,10 @@ namespace InTouch.NetWork {
             }
         }
 
+        // 本地摄像头拍摄到新的帧
+        // 由isProcessing进行动态码率调节
+        // 若是isProcessing为真，代表空域降采样或者网络繁忙，帧丢弃
+        // 否则，克隆该帧，交由传输接口处理
         private void videoSource_NewFrame(object sender, NewFrameEventArgs eventArgs) {
             if (isProcessing) {
                 return;
@@ -126,6 +140,8 @@ namespace InTouch.NetWork {
 
         }
 
+        // 视频流监听端口，传输层部分
+        // 将监听到的数据解码为bitmap，交由应用层处理（一般处理函数中把这个新的帧放置到一个Image中刷新显示）
         private void listenVideo() {
             tcpListener.Start();
             TcpClient recvClient;
@@ -161,6 +177,10 @@ namespace InTouch.NetWork {
             return;
         }
 
+        // 自适应动态码率调节核心
+        // 进行了空域压缩，把帧转为jpeg
+        // 也进行了时域降采样，加工过程包含了转码和流写入
+        // 所以isProcessing间接反应了网络状态，可以本地动态丢弃一些帧
         private void SampleVideo() {
             while (true) {
                 if (isProcessing) {
@@ -168,7 +188,7 @@ namespace InTouch.NetWork {
                         tcpSender = new TcpClient() { ReceiveTimeout = 2000, SendTimeout = 2000 };
                         tcpSender.Connect(ipe);
                         NetworkStream nwStream = tcpSender.GetStream();
-                        bitmapToWrite.Save(nwStream, System.Drawing.Imaging.ImageFormat.Jpeg);
+                        bitmapToWrite.Save(nwStream, System.Drawing.Imaging.ImageFormat.Jpeg); // 空域压缩，阻塞式传输，变码率传输的保证
                         nwStream.Close();
                         tcpSender.Close();
                         isProcessing = false;

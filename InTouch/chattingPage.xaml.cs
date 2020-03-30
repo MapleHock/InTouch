@@ -28,17 +28,21 @@ namespace InTouch
     /// </summary>
     public partial class chattingPage : Page {
 
+        // 绑定的聊天窗ViewModel
         public ChatViewModel chatViewModel;
         
-        
-
+       // 初始化，绑定ViewModel， 绑定各类应用层消息的处理函数
         public chattingPage() {
             InitializeComponent();
             msgTbx.Style = null;
+
+            // 绑定ViewMode
             chatViewModel = new ChatViewModel();
             chatRoomList.ItemsSource = chatViewModel.chatRoomViewModels;
 
-            App.wordListener.RecvCallBack += AppProtocol.RecvData;
+
+            // 绑定各类应用层消息的处理函数
+            App.generalListener.RecvCallBack += AppProtocol.RecvData;
             App.fileListener.RecvCallBack += AppProtocol.RecvData;
             UDPListener.getInstance().RecvCallBack += AppProtocol.RecvData;
             AppProtocol.WordDealer += recvNewWord;
@@ -48,6 +52,7 @@ namespace InTouch
                 
         }
 
+        // 切换不同的聊天室
         private void ChatRoomList_SelectionChanged(object sender, SelectionChangedEventArgs e) {
 
             if (chatRoomList.SelectedIndex == -1)
@@ -66,12 +71,14 @@ namespace InTouch
             SendWordMsg();
         }
 
+        // 发送快捷键右ctrl
         private void MsgTbx_KeyDown(object sender, KeyEventArgs e) {
             if (e.Key == Key.RightCtrl) {
                 SendWordMsg();
             }
         }
 
+        // 发送文字消息，调用应用层AppProtocol的接口封包，调用传输层P2PSender/UDPSender发送
         private void SendWordMsg() {
             if (chatRoomList.SelectedIndex == -1) {
                 MessageBox.Show("请选择聊天对象");
@@ -85,7 +92,7 @@ namespace InTouch
             
             string targetIP = chatViewModel.selectedChatRoom.addressInfo.IPAddress;
 
-            int targetPort = P2PListener.WORDLISTENPORT;
+            int targetPort = P2PListener.GENERALLISTENPORT;
             string srcId = App.user.userName;
             string destId = chatViewModel.selectedChatRoom.id;
             if (groupChat.isGroupChatMsg(destId)) {
@@ -110,6 +117,7 @@ namespace InTouch
             msgTbx.Text = "";
         }
 
+        // 收到新消息
         private void recvNewWord(byte[] newData) {
             string srcId = null;
             string destId = null;
@@ -127,13 +135,15 @@ namespace InTouch
                 newMsg.description = word;
                 newMsg.src = srcId;    
             }
+
+            // 新消息分发，根据是否为当前聊天人，选加入不同的messageList，并且设置未读计数
             bool isToCurrentWindow;
             if (chatViewModel.selectedChatRoom == null)
                 isToCurrentWindow = false;
             else
                 isToCurrentWindow = srcId == chatViewModel.selectedChatRoom.id;
 
-            isToCurrentWindow = true; // TODO debug temp
+            // isToCurrentWindow = true; // TODO debug temp
             if (!isToCurrentWindow) {
                 foreach (var item in chatViewModel.chatRoomViewModels) {
                     if (srcId == item.id) {
@@ -160,7 +170,9 @@ namespace InTouch
             SendFileMsg();
         }
 
+        // 发送文件消息，调用应用层AppProtocol的接口封包，调用传输层P2PSender发送
         private void SendFileMsg() {
+            // 选择文件
             OpenFileDialog dlg = new OpenFileDialog();
             Nullable<bool> result = dlg.ShowDialog();
             string filename = null;
@@ -175,6 +187,8 @@ namespace InTouch
                 MessageBox.Show(e.Message, "文件不存在");
                 return;
             }
+
+            // 调用应用层封包，调用传输层发送
             string srcId = App.user.userName;
             string destId = chatViewModel.selectedChatRoom.id;
             string targetIP = chatViewModel.selectedChatRoom.addressInfo.IPAddress;
@@ -189,6 +203,9 @@ namespace InTouch
             updateUI();
         }
 
+
+        // 接受到新文件碎块
+        // 计入在buffer中，并且判定是否为最后分组，若为最后分组则组合拼接
         public byte[][] fileBuffer = null;
         public int recvCount = 0;
         private void recvNewFile(byte[] newData) {
@@ -245,7 +262,9 @@ namespace InTouch
             SendPhoto();
         }
 
+        // 发送图片消息，调用应用层AppProtocol的接口封包，调用传输层P2PSender发送
         private void SendPhoto() {
+            // 选择表情包
             OpenFileDialog dlg = new OpenFileDialog();
             dlg.Filter = "图片文件|*.jpg;*.gif;*.bmp;*.png";
             Nullable<bool> result = dlg.ShowDialog();
@@ -261,10 +280,12 @@ namespace InTouch
                 MessageBox.Show(ex.Message, "图片不存在");
                 return;
             }
+
+            // 封包发送
             string srcId = App.user.userName;
             string destId = chatViewModel.selectedChatRoom.id;
             string targetIP = chatViewModel.selectedChatRoom.addressInfo.IPAddress;
-            int targetPort = P2PListener.WORDLISTENPORT;
+            int targetPort = P2PListener.GENERALLISTENPORT;
             byte[] data = AppProtocol.PackPhoto(bitmap, srcId, destId);
 
             P2PSender.getInstance().SendData(data, targetIP, targetPort);
@@ -274,6 +295,7 @@ namespace InTouch
             updateUI();
         }
 
+        // 接受到图片消息
         private void recvNewPhoto(byte[] newData) {
             string srcId = null;
             string destId = null;
@@ -287,6 +309,7 @@ namespace InTouch
         }
 
 
+        // 控制报文的发送散落于音视频会话，群聊创建等有需要的过程中
         // --------------------------- 收到控制报文 -------------------------
 
         private void RecvControl(byte[] newData) {
@@ -313,9 +336,9 @@ namespace InTouch
                 case AppProtocol.ControlType.QAUDIO:
                     var result = MessageBox.Show($"{srcId}邀请您进行音频聊天，是否接受？", "新音频邀请", MessageBoxButton.YesNo);
                     if (result == MessageBoxResult.No) {
-                        P2PSender.getInstance().SendData(AppProtocol.PackControl(AppProtocol.ControlType.RAUDIO, destId, srcId), targetIP, P2PListener.WORDLISTENPORT);
+                        P2PSender.getInstance().SendData(AppProtocol.PackControl(AppProtocol.ControlType.RAUDIO, destId, srcId), targetIP, P2PListener.GENERALLISTENPORT);
                     } else {
-                        P2PSender.getInstance().SendData(AppProtocol.PackControl(AppProtocol.ControlType.AAUDIO, destId, srcId), targetIP, P2PListener.WORDLISTENPORT);
+                        P2PSender.getInstance().SendData(AppProtocol.PackControl(AppProtocol.ControlType.AAUDIO, destId, srcId), targetIP, P2PListener.GENERALLISTENPORT);
                         var audio = new Audio(targetIP);
                         audioWindow = new audioWindow(audio);
                         audioWindow.Show();
@@ -331,9 +354,9 @@ namespace InTouch
                 case AppProtocol.ControlType.QVIDEO:
                     result = MessageBox.Show($"{srcId}邀请您进行视频聊天，是否接受？", "新视频邀请", MessageBoxButton.YesNo);
                     if (result == MessageBoxResult.No) {
-                        P2PSender.getInstance().SendData(AppProtocol.PackControl(AppProtocol.ControlType.RVIDEO, destId, srcId), targetIP, P2PListener.WORDLISTENPORT);
+                        P2PSender.getInstance().SendData(AppProtocol.PackControl(AppProtocol.ControlType.RVIDEO, destId, srcId), targetIP, P2PListener.GENERALLISTENPORT);
                     } else {
-                        P2PSender.getInstance().SendData(AppProtocol.PackControl(AppProtocol.ControlType.AVIDEO, destId, srcId), targetIP, P2PListener.WORDLISTENPORT);
+                        P2PSender.getInstance().SendData(AppProtocol.PackControl(AppProtocol.ControlType.AVIDEO, destId, srcId), targetIP, P2PListener.GENERALLISTENPORT);
                         var video = new Video(targetIP);
                         var videoWindow = new videoWindow(video);
                         videoWindow.Show();
@@ -356,7 +379,7 @@ namespace InTouch
 
         // --------------------------- 音频处理 -----------------------------
 
-
+        // 新建音频窗口并在由音频窗口处理拨打问题
         audioWindow audioWindow = null;
         private void AudioIcon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
             string srcId = App.user.userName;
@@ -364,7 +387,7 @@ namespace InTouch
             string targetIP = chatViewModel.selectedChatRoom.addressInfo.IPAddress;
             byte[] data = AppProtocol.PackControl(AppProtocol.ControlType.QAUDIO, srcId, destId);            
 
-            P2PSender.getInstance().SendData(data, targetIP, P2PListener.WORDLISTENPORT);
+            P2PSender.getInstance().SendData(data, targetIP, P2PListener.GENERALLISTENPORT);
             var audio = new Audio(targetIP);
             audioWindow = new audioWindow(audio);
             audioWindow.Show();
@@ -374,7 +397,7 @@ namespace InTouch
 
         // --------------------------- 视频处理 ----------------------------
 
-       
+        // 新建视频窗口并在由音频窗口处理拨打问题
         videoWindow videoWindow = null;
         private void VideoIcon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
             string srcId = App.user.userName;
@@ -382,7 +405,7 @@ namespace InTouch
             string targetIP = chatViewModel.selectedChatRoom.addressInfo.IPAddress;
             byte[] data = AppProtocol.PackControl(AppProtocol.ControlType.QVIDEO, srcId, destId);          
             
-            P2PSender.getInstance().SendData(data, targetIP, P2PListener.WORDLISTENPORT);
+            P2PSender.getInstance().SendData(data, targetIP, P2PListener.GENERALLISTENPORT);
 
             var video = new Video(targetIP);
             videoWindow = new videoWindow(video);
@@ -392,8 +415,9 @@ namespace InTouch
 
 
          
-        // -----------------------    UI 处理------------------------------
-
+        // ----------------------- UI 更新处理------------------------------
+        // 主要把本地发送的消息放到右侧
+        // 把图片消息按照放置到对应的Image中
         private void updateUI() {
             showingMsgList.ItemsSource = null;
             showingMsgList.ItemsSource = chatViewModel.selectedChatRoom.msgList;

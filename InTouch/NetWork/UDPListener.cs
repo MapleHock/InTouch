@@ -9,8 +9,16 @@ using System.Windows;
 using System.Threading;
 
 namespace InTouch.NetWork {
+    // 文字消息的UDP传输版本
     public class UDPListener {
+        // 单例模式相关
         private static UDPListener instance = null;
+        public static UDPListener getInstance() {
+            if (instance == null)
+                instance = new UDPListener();
+            return instance;
+        }
+
 
         // 网络编程，传输层相关
         public const int UDPLISTENPORT = 11000;
@@ -21,7 +29,9 @@ namespace InTouch.NetWork {
         // 程序具体实行相关，线程间通信
         Thread UDPListenerThread = null;
 
-        // 状态机
+        // 状态机状态定义
+        // 参考rdt3.0
+        // 多余的END 用于程序结束时用于关断线程
         enum State {
             WAITCALL0,
             WAITCALL1,
@@ -32,12 +42,7 @@ namespace InTouch.NetWork {
         // 与应用层交互
         public delegate void RecvNewDataHandler(byte[] newData);
         public event RecvNewDataHandler RecvCallBack;
-        public static UDPListener getInstance() {
-            if (instance == null)
-                instance = new UDPListener();
-            return instance;
-        }
-
+        
         private UDPListener() {
             try {
                 string hostName = Dns.GetHostName();
@@ -76,6 +81,8 @@ namespace InTouch.NetWork {
             }
         }
 
+        // 拿到新数据的处理函数
+        // 也包含了状态机的状态方程
         public void ListenData() {
             while (state != State.END) {
                 if (udpClient.Available != 0) {
@@ -96,6 +103,7 @@ namespace InTouch.NetWork {
             }
         }
 
+        // 处理拿到的UDP数据包，也即状态机的边
         private State ProcessData(byte[] data, byte seq) {
             bool isPassCheck = checkPkt(data);
             bool isSeqCorrect = data[1] == seq;
@@ -119,6 +127,7 @@ namespace InTouch.NetWork {
             }
         }
 
+        // 直接基于UDP的不可靠数据传输
         private void sendData(byte[] data) {
             try {
                 udpClient.Send(data, data.Length, currentRemoteIPE);
@@ -127,6 +136,7 @@ namespace InTouch.NetWork {
             }
         }
 
+        // 检查校验和
         private bool checkPkt(byte[] data) {
             byte sum = 0;
             for (int i = 1; i < data.Length; i++) {
@@ -138,6 +148,7 @@ namespace InTouch.NetWork {
                 return false;
         }
 
+        // 创建一个ACK包
         private byte[] makeACK(byte seq) {
             byte[] ackPkt = new byte[2];
             // seq

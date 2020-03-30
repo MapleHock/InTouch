@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using InTouch.Model;
 
 namespace InTouch.ViewModel {
+    // AddressBook的ViewModel，处理本地数据和UI的交互
     public class AddressBookViewModel : ViewModelBase {
         private AddressBook _addressBook; // 对Model的指针
         public AddressBookViewModel(AddressBook addressBook) {

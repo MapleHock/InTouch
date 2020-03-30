@@ -19,7 +19,9 @@ namespace InTouch.NetWork {
     /// videoWindow.xaml 的交互逻辑
     /// </summary>
     public partial class videoWindow : Window {
-
+        // 视频聊天窗
+        // 主要调用video中提供的本地初始化接口
+        // 设置video中收到新消息的上层显示调用
         public Video video;
         
         public videoWindow(Video video) {

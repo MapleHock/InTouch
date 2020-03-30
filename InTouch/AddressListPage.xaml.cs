@@ -32,6 +32,7 @@ namespace InTouch {
             contactList.ItemsSource = viewModel.addressBook.items;
         }
 
+        // 选择不同的联系人时，右侧页面的更新
         private void ContactList_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             int index = contactList.SelectedIndex;
 
@@ -57,6 +58,7 @@ namespace InTouch {
            
         }
 
+        // 点选新的朋友时右侧页面更新按钮
         private void NewFriend_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
             showStack.Children.Clear();
             showStack.VerticalAlignment = VerticalAlignment.Center;
@@ -106,6 +108,7 @@ namespace InTouch {
             // pageShow.Content = stackPanel;
         }
 
+        // 好友添加，向服务器确认ID是否合法，合法后添加好友
         private void AddBtn_Click(object sender, RoutedEventArgs e) {
 
             var btn = (Button)sender;
@@ -144,6 +147,7 @@ namespace InTouch {
 
         }
 
+        // 在线状态查询按钮
         private void QueryBtn_Click(object sender, RoutedEventArgs e) {
             var btn = (Button)sender;
             string recv = CSClient.getInstance().SendAMsg($"q{(string)btn.Tag}");
@@ -164,18 +168,20 @@ namespace InTouch {
 
         }
 
+        // 刷新好友在线状态按钮
         private void Update_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
             App.QueryAllitem();
             contactList.ItemsSource = null;
             contactList.ItemsSource = viewModel.addressBook.items;
         }
 
+        // 新建群聊按钮
         private void NewGroup_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-
             groupChat.newGroup(groupUserTbx.Text);
             
         }
 
+        // 好友删除，本地通讯录删除即可
         private void Delete_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
             if(contactList.SelectedIndex == -1) {
                 return;

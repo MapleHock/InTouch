@@ -11,13 +11,16 @@ using System.Threading;
 using System.Windows;
 
 namespace InTouch.NetWork {
+    // 语音聊天类
     public class Audio {
+        // 本地采集播放音频相关
         public WaveIn recorder = null;
         public WaveOut player = null;
         BufferedWaveProvider bufferedWaveProvider = null;
         int StandardSampleNum = 0;
         const int bufferMillisecond = 100;
 
+        // 网络相关
         UdpClient udpSender;
         UdpClient udpListener;
         IPEndPoint RemoteListenIPE;
@@ -39,7 +42,8 @@ namespace InTouch.NetWork {
         }
 
         public void AudioChatBegin() {
-            // network setting 
+            // 网络部分设置
+            // 打开两个UDP端口，并启动侦听线程
             isChatting = true;
             udpSender = new UdpClient(AUDIOSENDERPORT);
             udpListener = new UdpClient(AUDIOLISTENPORT);
@@ -47,7 +51,7 @@ namespace InTouch.NetWork {
             AudioListenThread = new Thread(UDPReceive) { Name="audio listen thread"};
             AudioListenThread.Start();
 
-            // local setting
+            // 本机设置
             try {
                 
                 player.Init(bufferedWaveProvider);
@@ -74,6 +78,7 @@ namespace InTouch.NetWork {
             recorder?.Dispose();
         }
 
+        // 一个采样周期后，发送采集的音频
         private void RecorderOnDataAvailable(object sender, WaveInEventArgs waveInEventArgs) {
             // bufferedWaveProvider.AddSamples(waveInEventArgs.Buffer, 0, waveInEventArgs.BytesRecorded);
             if (isChatting) {
@@ -81,7 +86,7 @@ namespace InTouch.NetWork {
             }                       
         }
 
-        
+        // 接受到新音频并波方
         private void UDPReceive() {
             while (isChatting) {
                 
@@ -95,7 +100,7 @@ namespace InTouch.NetWork {
                     }
                 }
 
-                Thread.Sleep(10);
+                Thread.Sleep(10); // 防止CPU使用率过高
             }
         }
     }

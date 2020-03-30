@@ -8,14 +8,15 @@ using System.Threading.Tasks;
 
 
 namespace InTouch.Model {
+    // 通讯录模型
     public class AddressBook {
         public ObservableCollection<Item> items { get; set; }
 
         public AddressBook() {
             items = new ObservableCollection<Item>();
         }
-        // 文件中
-        // userName(groupId)/Alias/[GroupUserName...]
+        // 文件中的存储格式
+        // userName(groupId);Alias;[GroupUserName...]
         public class Item {
             public string UserName { get; set; }
             public string Alias { get; set; }

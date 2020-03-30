@@ -4,14 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace InTouch.Model
 {
+    // 用户模型
     public class User {
-        public String userName = "2017010910";
-        public String passWord = "net2019";
+        public String userName = null;
+        public String passWord = null;
         public User() {
-            userName = "2017010910";
-            passWord = "net2019";
+            userName = null;
+            passWord = null;
         }
     }
 }

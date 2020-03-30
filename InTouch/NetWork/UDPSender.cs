@@ -10,13 +10,22 @@ using System.Threading;
 
 namespace InTouch.NetWork {
     class UDPSender {
+        // 单例模式相关
         private static UDPSender instance = null;
+        public static UDPSender getInstance() {
+            if (instance == null)
+                instance = new UDPSender();
 
-        private const int byteBufferSize = 1 * 1024 * 1024; // 16MB
+            return instance;
+        }
+
+        // 网络相关
+        private const int byteBufferSize = 1 * 1024 * 1024; // 1MB
         public const int UDPSENDPORT = 11001;
         private IPEndPoint ipe = null;
         UdpClient udpClient;
-        // 
+        
+        // 状态机 END状态用于结束时关断线程
         public enum State {
             WAITCALL0,
             WAITACK0,
@@ -25,15 +34,13 @@ namespace InTouch.NetWork {
             END // 程序退出时用
         }
         private State state;
+        
+        // 待发送消息队列，由应用层填充
         Queue<byte[]> UpperDataQueue;
 
+        // 同步状态机运行线程
         private Thread SenderStateMachineThread;
-        public static UDPSender getInstance() {
-            if (instance == null)
-                instance = new UDPSender();
 
-            return instance;
-        }
 
         private UDPSender() {
             state = State.WAITCALL0;            
@@ -43,6 +50,8 @@ namespace InTouch.NetWork {
             SenderStateMachineThread.Start();
         }
 
+        // 同步状态机运行线程，同步周期500ms
+        // 同时也是状态机状态方程
         private void SenderStateRun() {
             while (state != State.END) {
                 switch (state) {
@@ -61,11 +70,12 @@ namespace InTouch.NetWork {
                     default:
                         break;
                 }
-                Thread.Sleep(500); // 防止CPU占用率过高
+                Thread.Sleep(500); // 防止CPU占用率过高， 也决定了同步周期为500ms
             }
             return;
         }
 
+        // 辅助函数，结合状态和序列号，返回状态
         private State CombSeqState(Byte seq, bool isWaitCall) {
             if (isWaitCall) {
                 if (seq == 0)
@@ -78,8 +88,9 @@ namespace InTouch.NetWork {
             }
         }
 
+        // WAIT状态的边，输出方程和次态决定
         private State WaitCallProcess(byte seq) {
-            // 上层无调用
+            // 上层无调用，计时器加一
             if (UpperDataQueue.Count == 0) {
                 return CombSeqState(seq, true);
             }
@@ -108,13 +119,14 @@ namespace InTouch.NetWork {
             bool isSeqCorrect = ackPack[1] == seq;
             if (isPassCheck && isSeqCorrect) {
                 UpperDataQueue.Dequeue(); // 成功传输，此消息退出队列传输下一项
-                return CombSeqState((byte)(-seq + 1), true);
-            } else { // 接收到错误ack或者破损ack， 不动作
+                return CombSeqState((byte)(-seq + 1), true); // 跳到下一个序号的wait
+            } else { // 接收到错误ack或者破损ack， 不动作,博爱吃原状态
                 return CombSeqState(seq, false);
             }
            
         }
 
+        // 给应用层提供的可靠数据传输接口，实际上只把数据加入到待发送队列中
         public void ReliableSendData(byte[] data, string targetIP) {
             
             IPAddress iPAddress = IPAddress.Parse(targetIP);
@@ -139,6 +151,7 @@ namespace InTouch.NetWork {
             }            
         }
 
+        // 封包函数，在头部加上两个字节，一字节的校验和，一字节的序列号
         private byte[] makePkt(byte[] data, byte seq) {
             byte checksum = 0;
             for (int i = 0; i < data.Length; i++) {
@@ -152,6 +165,7 @@ namespace InTouch.NetWork {
             return pkt;
         }
 
+        // 检验接收方回传的包，是否为正确无损的ACK
         private bool checkPkt(byte[] data) {
             byte sum = 0;
             for (int i = 1; i < data.Length;i++) {
@@ -162,9 +176,6 @@ namespace InTouch.NetWork {
             else
                 return false;
         }
-
-
-
 
         public void EndUDPSender() {
             state = State.END;

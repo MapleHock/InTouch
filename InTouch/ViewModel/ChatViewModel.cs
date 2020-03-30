@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using InTouch.Model;
 
 namespace InTouch.ViewModel {
+    // ChatView的ViewModel，处理本地数据和UI的交互
+    // 这个ViewModel与ChatPage绑定
     public class ChatRoomViewModel : ViewModelBase {
         private AddressBook.Item _addressInfo;
         private List<Message> _msgList = new List<Message>();

@@ -7,8 +7,13 @@ using System.IO;
 using System.Windows;
 
 namespace InTouch.NetWork {
+    // 应用层数据协议
+    // 定义了消息类型和各消息类型的封包函数、解包函数
+    // 还定义根据传输层结果分拣报文，调用不同类消息处理函数的委托
     static class AppProtocol {
 
+        // 对于收到不同类型的消息执行不同的委托
+        // 五大消息类型，非法消息，文字消息，文件消息，图片消息，控制消息
         public delegate void RecvNewDataHandler(byte[] newData);
         public static RecvNewDataHandler WordDealer = null;
         public static RecvNewDataHandler FileDealer = null;
@@ -22,6 +27,8 @@ namespace InTouch.NetWork {
             control
         }
         
+        // 由传输层收到数据引发事件时调用
+        // 根据消息类型调用不同的处理函数
         public static void RecvData(byte[] dataPack) {
             int srcEnd = indexOfBytes(dataPack, Convert.ToByte('|'), 0, dataPack.Length);
             int destEnd = indexOfBytes(dataPack, Convert.ToByte('|'), srcEnd + 1, dataPack.Length);
@@ -52,6 +59,11 @@ namespace InTouch.NetWork {
         // id: 对用户——user name, 对群聊——group id
         // <src id>|<dest id>|<MessageType>|<optional bytes length>$
         // ---- optional data 文字/文件/图片等 -------
+
+        // ------------------------- 文字消息 -------------------------------
+        // optional 填写
+        // 私聊：       文字
+        // 群聊：   from:发送者ID\n文字
         public static byte[] PackWord(string word, string srcId, string destId) {
             byte[] appDataPack = null;
             byte[] srcIdSeg = Encoding.UTF8.GetBytes(srcId);
@@ -91,8 +103,13 @@ namespace InTouch.NetWork {
             word = Encoding.UTF8.GetString(recvData, headerEnd + 1, optionalLength);
         }
 
+        //--------------------------文字消息END-------------------------------
 
-        // optionl 填写：   文件名;seq/TotalSeg$
+        // ------------------------- 文件消息 --------------------------------
+        
+        // optional 填写：   文件名;序列号seq/总分段数TotalSeg$
+        
+        // 打包文件为byte[][],也即完成分块
         public static byte[][] PackFile(FileStream fstream, string srcId, string destId) {
             // optional 中，先写overview，以$结尾，然后写文件数据
             byte[][] appDataPack = null;
@@ -137,6 +154,7 @@ namespace InTouch.NetWork {
           return appDataPack;
         }
 
+        // 从收集齐全的文件块组recvDataGroup,解包组合为文件，并写入工作目录recvFile文件夹下
         public static void UnPackFile(byte[][]recvDataGroup, byte[] lastData, ref FileStream fstream, ref string srcId, ref string destId) {
             int headerEnd = indexOfBytes(lastData, Convert.ToByte('$'), 0, lastData.Length);
             int srcIdEnd = indexOfBytes(lastData, Convert.ToByte('|'), 0, headerEnd);
@@ -163,6 +181,7 @@ namespace InTouch.NetWork {
             
         }
 
+        // 解包文件段，返回文件数据
         public static byte[] UnPackFileSeg(byte[] recvData) {
             int headerEnd = indexOfBytes(recvData, Convert.ToByte('$'), 0, recvData.Length);
             int srcIdEnd = indexOfBytes(recvData, Convert.ToByte('|'), 0, headerEnd);
@@ -175,6 +194,7 @@ namespace InTouch.NetWork {
             return fileSeg;
         }
 
+        // 辅助函数， 从文件分块的报文中查找文件总分块数
         public static int findFileTotalNum(byte[] recvData) {
             int headerEnd = indexOfBytes(recvData, Convert.ToByte('$'), 0, recvData.Length);
             int overViewEnd = indexOfBytes(recvData, Convert.ToByte('$'), headerEnd + 1, recvData.Length - headerEnd - 1);
@@ -183,6 +203,7 @@ namespace InTouch.NetWork {
             return totalNum;
         }
 
+        // 辅助函数，从文件分块的报文中查找文件序列数
         public static int findFileSeq(byte[] recvData) {
             int headerEnd = indexOfBytes(recvData, Convert.ToByte('$'), 0, recvData.Length);
             int overViewEnd = indexOfBytes(recvData, Convert.ToByte('$'), headerEnd + 1, recvData.Length - headerEnd - 1);
@@ -192,6 +213,10 @@ namespace InTouch.NetWork {
             return Seq;
         }
 
+
+        // ------------------------- 文件消息END------------------------------
+        // ------------------------- 图片消息 --------------------------------
+        // optional 填写： 图片存为bitmap并且使用jpeg格式下，用bitmap内建函数填写
         public static byte[] PackPhoto(System.Drawing.Bitmap bitmap, string srcId, string destId) {
             // optional 中，先写overview，以$结尾，然后写文件数据
             byte[] appDataPack = null;
@@ -235,6 +260,14 @@ namespace InTouch.NetWork {
             return (System.Drawing.Bitmap)System.Drawing.Image.FromStream(mStream);
         }
 
+        // ------------------------- 图片消息END -----------------------------
+
+        // ------------------------- 控制消息 --------------------------------
+
+        // 控制报文类型
+        // 音频/视频的 请求Q， 接受A， 拒绝R
+        // 新群组消息
+        
         public enum ControlType {
             QAUDIO,
             AAUDIO,
@@ -245,6 +278,7 @@ namespace InTouch.NetWork {
             NEWGROUP
         }
 
+        // optional 填写 controlType的编码 其他补充内容(如新群组中的群成员信息) 
         public static byte[] PackControl(ControlType controlType, string srcId, string destId, string optional = null) {
             byte[] appDataPack = null;
             byte[] srcIdSeg = Encoding.UTF8.GetBytes(srcId);
@@ -295,7 +329,9 @@ namespace InTouch.NetWork {
             return (ControlType)recvData[headerEnd + 1];
         }
 
-        // ---------------- 辅助函数,返回第一个匹配的byte
+        // ------------------------- 控制消息END -----------------------------
+
+        // ---------------- 辅助函数,返回第一个匹配的byte的位置，主要用于解包
         private static int indexOfBytes(byte[] bytes, byte pattern, int offset, int count) {
             int i = offset;
             for (; i < count + offset; i++) {

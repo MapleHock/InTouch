@@ -10,6 +10,7 @@ using InTouch.NetWork;
 
 namespace InTouch.ViewModel
 {
+    // User的ViewModel，处理本地数据和UI的交互
     public class UserViewModel : ViewModelBase {
         private Model.User user = new Model.User();
         public string userName {
@@ -31,6 +32,8 @@ namespace InTouch.ViewModel
         public RelayCommandPara<object> loginCommand { private set; get; }
         public RelayCommand clearCommand { private set; get; }
 
+
+        // 用户登陆尝试，调用CS模块
         void Login(object currWindow) {
             
             String reply = CSClient.getInstance().SendAMsg($"{userName}_{passWord}");

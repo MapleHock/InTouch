@@ -21,7 +21,7 @@ namespace InTouch.NetWork {
             serverIPE = new IPEndPoint(IPAddress.Parse(serverIP), serverPort);
         }
 
-
+        // 网络相关
         private IPEndPoint serverIPE;
         private Socket socket = null;
         private string serverIP = "166.111.140.57"; 
@@ -29,7 +29,7 @@ namespace InTouch.NetWork {
         private int timeOut = 5000;
         private int byteBufferSize = 32; 
 
-
+        // 发送查询指令，返回值为服务器返回消息
         public string SendAMsg(string msg) {
             string recvMsg = "error";
             socket = new Socket(AddressFamily.InterNetwork,

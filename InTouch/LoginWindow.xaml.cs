@@ -22,14 +22,14 @@ namespace InTouch {
         public LoginWindow() {
             InitializeComponent();
         }
-
+        // 账户登陆，主题由ViewModel完成，这个函数只处理App初始化和到MainWindow的衔接
         private void StackPanel_IsEnabledChanged(object sender, DependencyPropertyChangedEventArgs e) {
             App.user = new Model.User() {
                 userName = UserNameTbx.Text
             };
             App.LoadAddressBook(UserNameTbx.Text);
-            App.wordListener = new P2PListener(P2PListener.WORDLISTENPORT);
-            App.wordListener.BeginListen();
+            App.generalListener = new P2PListener(P2PListener.GENERALLISTENPORT);
+            App.generalListener.BeginListen();
             App.fileListener = new P2PListener(P2PListener.FILELISTENPORT);
             App.fileListener.BeginListen();
             UDPListener.getInstance();
